@@ -5,7 +5,7 @@ package cmd
 
 import (
 	"log"
-	"revolution/project"
+	"revolution/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,7 +30,7 @@ to quickly create a Cobra application.`,
 			template = viper.GetString("default_project_template")
 		}
 
-		err := project.Create(args[0], template)
+		err := utils.CreateProject(args[0], template)
 		if err != nil {
 			log.Fatal("Failed to create project.")
 		}
