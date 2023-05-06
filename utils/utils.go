@@ -28,7 +28,7 @@ func CreateProject(title, template string) error {
 
 	projDir := filepath.Join(wd, title)
 
-	err = os.MkdirAll(projDir, 7777)
+	err = os.MkdirAll(projDir, 0777)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func CreateProject(title, template string) error {
 	xmlPath := filepath.Join(projDir, ".rlml")
 	tmplXml := string(data)
 
-	err = os.WriteFile(xmlPath, []byte(tmplXml), 7777)
+	err = os.WriteFile(xmlPath, []byte(tmplXml), 0777)
 	if err != nil {
 		os.Remove(projDir)
 		return err
@@ -65,7 +65,7 @@ func CreateProject(title, template string) error {
 		path := filepath.Join(projDir, ".gitignore")
 		content := "/.extensions"
 
-		os.WriteFile(path, []byte(content), 7777)
+		os.WriteFile(path, []byte(content), 0777)
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func SaveAsTemplate(title, outDir string) error {
 
 	tmplPath := filepath.Join(outDir, title+".template")
 
-	err = os.WriteFile(tmplPath, data, 7777)
+	err = os.WriteFile(tmplPath, data, 0777)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 
-	err = os.WriteFile(dst, data, 7777)
+	err = os.WriteFile(dst, data, 0777)
 	if err != nil {
 		return err
 	}
