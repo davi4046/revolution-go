@@ -43,9 +43,9 @@ func CreateProject(title, template string) error {
 		return err
 	}
 
-	/* Create .xml file */
+	/* Create .rlml file */
 
-	xmlPath := filepath.Join(projDir, ".xml")
+	xmlPath := filepath.Join(projDir, ".rlml")
 	tmplXml := string(data)
 
 	err = os.WriteFile(xmlPath, []byte(tmplXml), 7777)
@@ -79,7 +79,7 @@ func SaveAsTemplate(title, outDir string) error {
 		return err
 	}
 
-	xmlPath := filepath.Join(wd, ".xml")
+	xmlPath := filepath.Join(wd, ".rlml")
 
 	data, err := os.ReadFile(xmlPath)
 	if err != nil {
