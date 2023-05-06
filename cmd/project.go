@@ -4,7 +4,6 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
 	"revolution/utils"
 
 	"github.com/spf13/cobra"
@@ -24,16 +23,13 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if template == "" {
 			template = viper.GetString("default_project_template")
 		}
 
-		err := utils.CreateProject(args[0], template)
-		if err != nil {
-			log.Fatal("Failed to create project.")
-		}
+		return utils.CreateProject(args[0], template)
 	},
 }
 
