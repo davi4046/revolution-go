@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,9 +33,19 @@ func CreateProject(title, template string) error {
 		return err
 	}
 
+	/* Create .xsd file */
+
+	xsdPath := filepath.Join(projDir, ".xsd")
+
+	err = CopyFile(".xsd", xsdPath)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	/* Create .xml file */
 
-	xmlPath := filepath.Join(projDir, title+".xml")
+	xmlPath := filepath.Join(projDir, ".xml")
 	tmplXml := string(data)
 
 	err = os.WriteFile(xmlPath, []byte(tmplXml), 7777)
@@ -78,6 +89,20 @@ func SaveAsTemplate(title, outDir string) error {
 	tmplPath := filepath.Join(outDir, title+".template")
 
 	err = os.WriteFile(tmplPath, data, 7777)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CopyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(dst, data, 7777)
 	if err != nil {
 		return err
 	}
