@@ -1,7 +1,0 @@
-{
-    "xml": "made from test template",
-    "dependencies": {
-        "harmonize": "1.0.0",
-        "generative-expression": "1.0.0"
-    }
-}
