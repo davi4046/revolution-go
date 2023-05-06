@@ -1,27 +1,19 @@
 package utils
 
 import (
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
 // Creates a new project in the current working directory.
-func CreateProject(title, template string) (err error) {
+func CreateProject(title, template string) error {
 
 	/* Get template properties */
 
 	tmplPath := filepath.Join("templates", template+".template")
 
 	data, err := os.ReadFile(tmplPath)
-	if err != nil {
-		return err
-	}
-
-	var tmpl map[string]interface{}
-
-	err = json.Unmarshal(data, &tmpl)
 	if err != nil {
 		return err
 	}
@@ -43,7 +35,7 @@ func CreateProject(title, template string) (err error) {
 	/* Create .xml file */
 
 	xmlPath := filepath.Join(projDir, title+".xml")
-	tmplXml := tmpl["xml"].(string)
+	tmplXml := string(data)
 
 	err = os.WriteFile(xmlPath, []byte(tmplXml), 7777)
 	if err != nil {
@@ -63,6 +55,31 @@ func CreateProject(title, template string) (err error) {
 		content := "/.extensions"
 
 		os.WriteFile(path, []byte(content), 7777)
+	}
+
+	return nil
+}
+
+// Create a new template from the current project.
+func SaveAsTemplate(title, outDir string) error {
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	xmlPath := filepath.Join(wd, ".xml")
+
+	data, err := os.ReadFile(xmlPath)
+	if err != nil {
+		return err
+	}
+
+	tmplPath := filepath.Join(outDir, title+".template")
+
+	err = os.WriteFile(tmplPath, data, 7777)
+	if err != nil {
+		return err
 	}
 
 	return nil
