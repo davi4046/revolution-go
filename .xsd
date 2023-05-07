@@ -6,10 +6,12 @@
 
     <xs:element name="Composition">
         <xs:complexType>
-            <xs:sequence>
+            <xs:all>
+                <xs:element ref="Key" />
+                <xs:element ref="KeyChanges" />
                 <xs:element ref="Definitions" />
-                <xs:element ref="Score" />
-            </xs:sequence>
+                <xs:element ref="Channels" />
+            </xs:all>
         </xs:complexType>
 
         <xs:key name="genId">
@@ -29,6 +31,11 @@
             <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Mod" />
             <xs:field xpath="@modIdref" />
         </xs:keyref>
+
+        <xs:unique name="beat-must-be-unique">
+            <xs:selector xpath="tns:KeyChange" />
+            <xs:field xpath="@beat" />
+        </xs:unique>
     </xs:element>
 
     <xs:element name="Definitions">
@@ -68,24 +75,6 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="Score">
-        <xs:annotation>
-            <xs:documentation> The score is where the structure of the composition is to be
-                specified. </xs:documentation>
-        </xs:annotation>
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element ref="Key" />
-                <xs:element ref="KeyChanges" />
-                <xs:element ref="Channels" />
-            </xs:sequence>
-        </xs:complexType>
-        <xs:unique name="beat-must-be-unique">
-            <xs:selector xpath="tns:KeyChange" />
-            <xs:field xpath="@beat" />
-        </xs:unique>
-    </xs:element>
-
     <xs:element name="Channels">
         <xs:annotation>
             <xs:documentation> Holds all channels. </xs:documentation>
@@ -103,7 +92,7 @@
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
-                <xs:element ref="Track" />
+                <xs:element ref="Track" maxOccurs="unbounded" />
             </xs:sequence>
             <xs:attribute name="instrument" type="xs:string" default="piano">
                 <xs:annotation>
@@ -221,7 +210,7 @@
                 concurrent key. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:attribute name="Root" use="required">
+            <xs:attribute name="root" use="required">
                 <xs:annotation>
                     <xs:documentation> The root pitchclass of the key. </xs:documentation>
                 </xs:annotation>
@@ -237,7 +226,7 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
-            <xs:attribute name="Mode" use="required">
+            <xs:attribute name="mode" use="required">
                 <xs:annotation>
                     <xs:documentation> The mode of the key. </xs:documentation>
                 </xs:annotation>
