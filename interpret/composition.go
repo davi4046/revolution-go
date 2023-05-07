@@ -27,9 +27,8 @@ type Composition struct {
 			Instrument string `xml:"instrument,attr"`
 			Track      []struct {
 				Item []struct {
-					Beat    float64 `xml:"beat,attr"`
-					Length  float64 `xml:"length,attr"`
-					Content string
+					Beat   float64 `xml:"beat,attr"`
+					Length float64 `xml:"length,attr"`
 				}
 			}
 		}
