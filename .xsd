@@ -24,11 +24,11 @@
         </xs:key>
 
         <xs:keyref name="genIdref" refer="genId">
-            <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Gen" />
+            <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Item/tns:Gen" />
             <xs:field xpath="@genIdref" />
         </xs:keyref>
         <xs:keyref name="modIdref" refer="modId">
-            <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Mod" />
+            <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Item/tns:Mod" />
             <xs:field xpath="@modIdref" />
         </xs:keyref>
 
@@ -107,10 +107,20 @@
             <xs:documentation> A track is the equivelant of a stave on a music partitura. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:choice minOccurs="0" maxOccurs="unbounded">
-                <xs:element ref="Gen" />
-                <xs:element ref="Mod" />
+            <xs:sequence>
+                <xs:element ref="Item" maxOccurs="unbounded" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="Item">
+        <xs:complexType>
+            <xs:choice>
+                <xs:element ref="Gen"></xs:element>
+                <xs:element ref="Mod"></xs:element>
             </xs:choice>
+            <xs:attribute name="beat" type="xs:float" use="required" />
+            <xs:attribute name="length" type="xs:float" use="required" />
         </xs:complexType>
     </xs:element>
 
@@ -126,17 +136,10 @@
                     <xs:documentation> Must reference a valid ID of a GenDef under Definitions. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
-            <xs:attribute name="beat"
-                type="xs:float" use="required">
+            <xs:attribute name="start"
+                type="xs:float" default="0">
                 <xs:annotation>
-                    <xs:documentation> Defines the beat at which the generation starts internally
-                        (not on the track). </xs:documentation>
-                </xs:annotation>
-            </xs:attribute>
-            <xs:attribute name="length"
-                type="xs:float" use="required">
-                <xs:annotation>
-                    <xs:documentation> Defines the length of the generation (in beats). </xs:documentation>
+                    <xs:documentation> Defines the beat that the generation should start from. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
             <xs:attribute name="add" type="xs:float"
@@ -154,18 +157,6 @@
                 type="xs:string" use="required">
                 <xs:annotation>
                     <xs:documentation> Must reference a valid ID of a ModDef under Definitions. </xs:documentation>
-                </xs:annotation>
-            </xs:attribute>
-            <xs:attribute name="beat"
-                type="xs:float" use="required">
-                <xs:annotation>
-                    <xs:documentation> Defines the start of the part-to-be-modified. </xs:documentation>
-                </xs:annotation>
-            </xs:attribute>
-            <xs:attribute name="length"
-                type="xs:float" use="required">
-                <xs:annotation>
-                    <xs:documentation> Defines the length of the part-to-be-modified (in beats). </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
         </xs:complexType>
