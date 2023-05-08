@@ -4,7 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"revolution/utils"
+	fm "revolution/file-manage"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,7 +23,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outDir := viper.GetString("templates_directory")
-		return utils.SaveAsTemplate(args[0], outDir)
+		return fm.CreateTemplate(args[0], outDir)
 	},
 }
 

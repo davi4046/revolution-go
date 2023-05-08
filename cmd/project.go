@@ -4,10 +4,10 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"revolution/utils"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	fm "revolution/file-manage"
 )
 
 var template string
@@ -29,7 +29,7 @@ to quickly create a Cobra application.`,
 			template = viper.GetString("default_project_template")
 		}
 
-		return utils.CreateProject(args[0], template)
+		return fm.CreateProject(args[0], template)
 	},
 }
 
