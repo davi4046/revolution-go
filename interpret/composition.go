@@ -16,10 +16,10 @@ type Composition struct {
 	}
 	Definitions struct {
 		GenDef []struct {
-			GenId string `xml:"genId,attr"`
+			Id string `xml:"id,attr"`
 		}
 		ModDef []struct {
-			ModId string `xml:"modId,attr"`
+			Id string `xml:"id,attr"`
 		}
 	}
 	Channels struct {
@@ -29,6 +29,15 @@ type Composition struct {
 				Item []struct {
 					Beat   float64 `xml:"beat,attr"`
 					Length float64 `xml:"length,attr"`
+					Gen    struct {
+						Ref   string  `xml:"ref,attr"`
+						Start float64 `xml:"start,attr"`
+						Add   int     `xml:"add,attr"`
+						Sub   int     `xml:"sub,attr"`
+					}
+					Mod struct {
+						Ref string `xml:"ref,attr"`
+					}
 				}
 			}
 		}

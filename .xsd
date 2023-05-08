@@ -14,25 +14,25 @@
             </xs:all>
         </xs:complexType>
 
-        <xs:key name="genId">
+        <xs:key name="GenDef-id">
             <xs:selector xpath="tns:Definitions/tns:GenDef" />
-            <xs:field xpath="@genId" />
+            <xs:field xpath="@id" />
         </xs:key>
-        <xs:key name="modId">
+        <xs:key name="ModDef-id">
             <xs:selector xpath="tns:Definitions/tns:ModDef" />
-            <xs:field xpath="@modId" />
+            <xs:field xpath="@id" />
         </xs:key>
 
-        <xs:keyref name="genIdref" refer="genId">
-            <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Item/tns:Gen" />
-            <xs:field xpath="@genIdref" />
+        <xs:keyref name="Gen-id" refer="GenDef-id">
+            <xs:selector xpath="tns:Channels/tns:Channel/tns:Track/tns:Item/tns:Gen" />
+            <xs:field xpath="@ref" />
         </xs:keyref>
-        <xs:keyref name="modIdref" refer="modId">
-            <xs:selector xpath="tns:Score/tns:Channels/tns:Channel/tns:Track/tns:Item/tns:Mod" />
-            <xs:field xpath="@modIdref" />
+        <xs:keyref name="Mod-id" refer="ModDef-id">
+            <xs:selector xpath="tns:Channels/tns:Channel/tns:Track/tns:Item/tns:Mod" />
+            <xs:field xpath="@ref" />
         </xs:keyref>
 
-        <xs:unique name="beat-must-be-unique">
+        <xs:unique name="KeyChange-beat">
             <xs:selector xpath="tns:KeyChange" />
             <xs:field xpath="@beat" />
         </xs:unique>
@@ -59,7 +59,7 @@
             <xs:choice>
 
             </xs:choice>
-            <xs:attribute name="genId" type="xs:string" use="required" />
+            <xs:attribute name="id" type="id" use="required" />
         </xs:complexType>
     </xs:element>
 
@@ -71,13 +71,13 @@
             <xs:choice>
 
             </xs:choice>
-            <xs:attribute name="modId" type="xs:string" use="required" />
+            <xs:attribute name="id" type="id" use="required" />
         </xs:complexType>
     </xs:element>
 
     <xs:element name="Channels">
         <xs:annotation>
-            <xs:documentation> Holds all channels. </xs:documentation>
+            <xs:documentation> Holds channels. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
@@ -94,9 +94,9 @@
             <xs:sequence>
                 <xs:element ref="Track" maxOccurs="unbounded" />
             </xs:sequence>
-            <xs:attribute name="instrument" type="xs:string" default="piano">
+            <xs:attribute name="instrument" type="instrument" use="required">
                 <xs:annotation>
-                    <xs:documentation> The sound to be used during playback. Default is piano. </xs:documentation>
+                    <xs:documentation> The sound to be used during playback. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
         </xs:complexType>
@@ -119,44 +119,47 @@
                 <xs:element ref="Gen"></xs:element>
                 <xs:element ref="Mod"></xs:element>
             </xs:choice>
-            <xs:attribute name="beat" type="xs:float" use="required" />
-            <xs:attribute name="length" type="xs:float" use="required" />
+            <xs:attribute name="beat" type="beat" use="required" />
+            <xs:attribute name="length" type="length" use="required" />
         </xs:complexType>
     </xs:element>
 
     <xs:element name="Gen">
         <xs:annotation>
-            <xs:documentation> Generate a specified length of material using the referenced
-                generator and put it on the track. </xs:documentation>
+            <xs:documentation> Generation. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:attribute name="genIdref"
-                type="xs:string" use="required">
+            <xs:attribute name="ref" type="id" use="required">
                 <xs:annotation>
-                    <xs:documentation> Must reference a valid ID of a GenDef under Definitions. </xs:documentation>
+                    <xs:documentation> Must reference the ID of a GenDef under Definitions. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
-            <xs:attribute name="start"
-                type="xs:float" default="0">
+            <xs:attribute name="start" type="beat">
                 <xs:annotation>
-                    <xs:documentation> Defines the beat that the generation should start from. </xs:documentation>
+                    <xs:documentation> The beat that the generation should start from. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
-            <xs:attribute name="add" type="xs:float"
-                default="0" />
+            <xs:attribute name="add" type="xs:positiveInteger">
+                <xs:annotation>
+                    <xs:documentation> The number of scale degrees to raise the generation. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="sub" type="xs:positiveInteger">
+                <xs:annotation>
+                    <xs:documentation> The number of scale degrees to lower the generation. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
         </xs:complexType>
     </xs:element>
 
     <xs:element name="Mod">
         <xs:annotation>
-            <xs:documentation> Send part of the generated material on this track to be modified by
-                the referenced modifier. </xs:documentation>
+            <xs:documentation> Modification. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:attribute name="modIdref"
-                type="xs:string" use="required">
+            <xs:attribute name="ref" type="id" use="required">
                 <xs:annotation>
-                    <xs:documentation> Must reference a valid ID of a ModDef under Definitions. </xs:documentation>
+                    <xs:documentation> Must reference the ID of a ModDef under Definitions. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
         </xs:complexType>
@@ -164,7 +167,7 @@
 
     <xs:element name="KeyChanges">
         <xs:annotation>
-            <xs:documentation> Holds any key change. </xs:documentation>
+            <xs:documentation> Holds key changes. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
@@ -176,21 +179,16 @@
     <xs:element name="KeyChange">
         <xs:annotation>
             <xs:documentation> Any generator output after this key change will be interpreted in the
-                provided key until another key change is defined. </xs:documentation>
+                provided key until another key change is specified. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
             <xs:all>
                 <xs:element ref="Key" />
             </xs:all>
-            <xs:attribute name="beat" use="required">
+            <xs:attribute name="beat" type="beat" use="required">
                 <xs:annotation>
                     <xs:documentation> The beat on which the key change takes effect. </xs:documentation>
                 </xs:annotation>
-                <xs:simpleType>
-                    <xs:restriction base="xs:float">
-                        <xs:minExclusive value="0" />
-                    </xs:restriction>
-                </xs:simpleType>
             </xs:attribute>
         </xs:complexType>
     </xs:element>
@@ -201,41 +199,76 @@
                 concurrent key. </xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:attribute name="root" use="required">
+            <xs:attribute name="root" type="pitchclass" use="required">
                 <xs:annotation>
                     <xs:documentation> The root pitchclass of the key. </xs:documentation>
                 </xs:annotation>
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="A" />
-                        <xs:enumeration value="B" />
-                        <xs:enumeration value="C" />
-                        <xs:enumeration value="D" />
-                        <xs:enumeration value="E" />
-                        <xs:enumeration value="F" />
-                        <xs:enumeration value="G" />
-                    </xs:restriction>
-                </xs:simpleType>
             </xs:attribute>
-            <xs:attribute name="mode" use="required">
+            <xs:attribute name="mode" type="mode" use="required">
                 <xs:annotation>
                     <xs:documentation> The mode of the key. </xs:documentation>
                 </xs:annotation>
-                <xs:simpleType>
-                    <xs:restriction base="xs:string">
-                        <xs:enumeration value="Major" />
-                        <xs:enumeration value="Minor" />
-                        <xs:enumeration value="Ionian" />
-                        <xs:enumeration value="Dorian" />
-                        <xs:enumeration value="Phrygian" />
-                        <xs:enumeration value="Lydian" />
-                        <xs:enumeration value="Mixolydian" />
-                        <xs:enumeration value="Aeolian" />
-                        <xs:enumeration value="Locrian" />
-                        <xs:enumeration value="Chromatic" />
-                    </xs:restriction>
-                </xs:simpleType>
             </xs:attribute>
         </xs:complexType>
     </xs:element>
+
+    <xs:simpleType name="id">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="beat">
+        <xs:restriction base="xs:float">
+            <xs:minInclusive value="0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="length">
+        <xs:restriction base="xs:float">
+            <xs:minExclusive value="0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="pitchclass">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="A" />
+            <xs:enumeration value="B" />
+            <xs:enumeration value="C" />
+            <xs:enumeration value="D" />
+            <xs:enumeration value="E" />
+            <xs:enumeration value="F" />
+            <xs:enumeration value="G" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="mode">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Major" />
+            <xs:enumeration value="Minor" />
+            <xs:enumeration value="Ionian" />
+            <xs:enumeration value="Dorian" />
+            <xs:enumeration value="Phrygian" />
+            <xs:enumeration value="Lydian" />
+            <xs:enumeration value="Mixolydian" />
+            <xs:enumeration value="Aeolian" />
+            <xs:enumeration value="Locrian" />
+            <xs:enumeration value="Chromatic" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="instrument">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="violin" />
+            <xs:enumeration value="cello" />
+            <xs:enumeration value="double bass" />
+            <xs:enumeration value="flute" />
+            <xs:enumeration value="clarinet" />
+            <xs:enumeration value="saxophone" />
+            <xs:enumeration value="trumpet" />
+            <xs:enumeration value="guitar" />
+            <xs:enumeration value="piano" />
+            <xs:enumeration value="harp" />
+        </xs:restriction>
+    </xs:simpleType>
 </xs:schema>
