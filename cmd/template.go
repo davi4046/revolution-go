@@ -4,7 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	fm "revolution/file-manage"
+	fm "revolution/filemanage"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

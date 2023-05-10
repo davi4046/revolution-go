@@ -1,4 +1,4 @@
-package FileManagement
+package filemanage
 
 import (
 	"os"

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	fm "revolution/file-manage"
+	fm "revolution/filemanage"
 )
 
 var template string
