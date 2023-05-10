@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	interpreter "revolution/interpret"
+	interp "revolution/interpret"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,7 +43,7 @@ to quickly create a Cobra application.`,
 
 		/* Start interpreter */
 
-		err = interpreter.Watch(rlmlPath)
+		err = interp.Watch(rlmlPath)
 		if err != nil {
 			return err
 		}

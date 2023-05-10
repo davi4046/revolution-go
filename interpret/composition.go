@@ -1,4 +1,4 @@
-package interpreter
+package interpret
 
 type Composition struct {
 	Key struct {

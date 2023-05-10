@@ -1,4 +1,4 @@
-package interpreter
+package interpret
 
 import (
 	"encoding/xml"
