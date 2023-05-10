@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-// Create a new template from the current project.
+// Creates a new template from the current project.
 func CreateTemplate(title, outDir string) error {
 
 	wd, err := os.Getwd()
