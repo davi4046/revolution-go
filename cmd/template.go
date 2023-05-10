@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	fm "revolution/filemanage"
 
 	"github.com/spf13/cobra"
@@ -22,8 +23,17 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		outDir := viper.GetString("templates_directory")
-		return fm.CreateTemplate(args[0], outDir)
+		templateDir := viper.GetString("template_directory")
+
+		if templateDir == "" {
+			log.Fatalln("Template directory is unspecified.")
+		}
+
+		if err := fm.CreateTemplate(args[0], templateDir); err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
