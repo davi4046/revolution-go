@@ -6,7 +6,7 @@ import (
 )
 
 // Creates a new template from the current project.
-func CreateTemplate(title, outDir string) error {
+func CreateTemplate(name, outDir string) error {
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -20,7 +20,7 @@ func CreateTemplate(title, outDir string) error {
 		return err
 	}
 
-	tmplPath := filepath.Join(outDir, title+".template")
+	tmplPath := filepath.Join(outDir, name+".template")
 
 	err = os.WriteFile(tmplPath, data, 0777)
 	if err != nil {

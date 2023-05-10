@@ -8,7 +8,7 @@ import (
 )
 
 // Creates a new project in the current working directory.
-func CreateProject(title, template string) error {
+func CreateProject(name, template string) error {
 
 	/* Get template properties */
 
@@ -26,7 +26,7 @@ func CreateProject(title, template string) error {
 		return err
 	}
 
-	projDir := filepath.Join(wd, title)
+	projDir := filepath.Join(wd, name)
 
 	err = os.MkdirAll(projDir, 0777)
 	if err != nil {
