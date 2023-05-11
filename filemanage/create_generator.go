@@ -33,7 +33,7 @@ func CreateGenerator(name, outDir string) error {
 	fileName := filepath.Join(outDir, toKebabCase(name)+".gen.go")
 
 	if _, err := os.Stat(fileName); !os.IsNotExist(err) {
-		log.Fatalln("Failed to create generator: A generator with the same name already exists.")
+		log.Fatalln("Failed to create generator: A generator by the same name already exists.")
 	}
 
 	if err := os.WriteFile(fileName, data, 0777); err != nil {
