@@ -8,7 +8,27 @@ import (
 	"strings"
 )
 
-var data = []byte("blah blah")
+var data = []byte(
+	`package components
+
+import "components/types"
+
+type Generator struct {
+	/*
+		Any variables declared here
+		will automatically be exposed
+		as parameters of the generator.
+	*/
+}
+
+func (g Generator) Generate(i int) types.Note {
+
+	return types.Note{
+		Midinote: 60,
+		Duration: 1,
+	}
+}
+`)
 
 func CreateGenerator(name, outDir string) error {
 
