@@ -1,9 +1,11 @@
 package filemanage
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -11,6 +13,26 @@ import (
 
 func CreateGenerator(name, outDir string) error {
 
+	/* Check that a component by the same name doesn't exist */
+
+	files, err := os.ReadDir(outDir)
+	if err != nil {
+		return err
+	}
+
+	r := regexp.MustCompile(fmt.Sprintf(`(gen|mod).%s.go`, name))
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		if r.MatchString(file.Name()) {
+			log.Fatalln("Failed to create generator: A component by the specified name already exists.")
+		}
+	}
+
+	// Initial generator code
 	var data = `package components
 
 import "components/types"
@@ -33,13 +55,10 @@ func (g Generator) Generate(i int) types.Note {
 `
 	data = strings.ReplaceAll(data, "Generator", strcase.ToCamel(name))
 
-	fileName := filepath.Join(outDir, strcase.ToSnake(name)+".gen.go")
+	fileName := fmt.Sprintf("gen.%s.go", strcase.ToSnake(name))
+	filePath := filepath.Join(outDir, fileName)
 
-	if _, err := os.Stat(fileName); !os.IsNotExist(err) {
-		log.Fatalln("Failed to create generator: A generator by the same name already exists.")
-	}
-
-	if err := os.WriteFile(fileName, []byte(data), 0777); err != nil {
+	if err := os.WriteFile(filePath, []byte(data), 0777); err != nil {
 		return err
 	}
 
