@@ -6,10 +6,10 @@ package cmd
 import (
 	"log"
 
-	fm "revolution/filemanage"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	fm "revolution/filemanage"
 )
 
 // generatorCmd represents the generator command
@@ -25,15 +25,13 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		outDir := viper.GetString("component_directory")
+		componentDir := viper.GetString("component_directory")
 
-		if outDir == "" {
+		if componentDir == "" {
 			log.Fatalln("Component directory is unspecified.")
 		}
 
-		if err := fm.CreateGenerator(args[0], outDir); err != nil {
-			return err
-		}
+		fm.CreateGenerator(args[0], componentDir)
 
 		return nil
 	},

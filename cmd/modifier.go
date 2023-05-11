@@ -24,13 +24,13 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		outDir := viper.GetString("component_directory")
+		componentDir := viper.GetString("component_directory")
 
-		if outDir == "" {
+		if componentDir == "" {
 			log.Fatalln("Component directory is unspecified.")
 		}
 
-		if err := fm.CreateModifier(args[0], outDir); err != nil {
+		if err := fm.CreateModifier(args[0], componentDir); err != nil {
 			return err
 		}
 
