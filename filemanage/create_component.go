@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/iancoleman/strcase"
 )
@@ -14,7 +13,7 @@ import (
 func createComponent(name, template, outDir string) error {
 	camelCaseName := strcase.ToCamel(name)
 	snakeCaseName := strcase.ToSnake(name)
-	lowerCaseName := strings.ToLower(camelCaseName)
+	// lowerCaseName := strings.ToLower(camelCaseName)
 
 	data := fmt.Sprintf(template, camelCaseName) // Insert name into template
 
@@ -38,7 +37,7 @@ func createComponent(name, template, outDir string) error {
 		return err
 	}
 
-	cmd := exec.Command("go", "mod", "init", lowerCaseName)
+	cmd := exec.Command("go", "mod", "init", snakeCaseName)
 
 	if err := cmd.Run(); err != nil {
 		return err
