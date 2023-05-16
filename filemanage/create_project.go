@@ -1,18 +1,24 @@
 package filemanage
 
 import (
-	"fmt"
+	_ "embed"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/spf13/viper"
 )
+
+//go:embed xsd
+var xsdData []byte
 
 // Creates a new project in the current working directory.
 func CreateProject(name, template string) error {
 
-	/* Get template properties */
+	/* Get template data */
 
-	tmplPath := filepath.Join("templates", template+".template")
+	assetDir := viper.GetString("asset_directory")
+	tmplPath := filepath.Join(assetDir, "templates", template+".template")
 
 	data, err := os.ReadFile(tmplPath)
 	if err != nil {
@@ -28,8 +34,7 @@ func CreateProject(name, template string) error {
 
 	projDir := filepath.Join(wd, name)
 
-	err = os.MkdirAll(projDir, 0777)
-	if err != nil {
+	if err = os.MkdirAll(projDir, 0777); err != nil {
 		return err
 	}
 
@@ -37,9 +42,7 @@ func CreateProject(name, template string) error {
 
 	xsdPath := filepath.Join(projDir, ".xsd")
 
-	err = copyFile(".xsd", xsdPath)
-	if err != nil {
-		fmt.Println(err)
+	if err = os.WriteFile(xsdPath, xsdData, 0777); err != nil {
 		return err
 	}
 
@@ -48,8 +51,7 @@ func CreateProject(name, template string) error {
 	xmlPath := filepath.Join(projDir, ".rlml")
 	tmplXml := string(data)
 
-	err = os.WriteFile(xmlPath, []byte(tmplXml), 0777)
-	if err != nil {
+	if err = os.WriteFile(xmlPath, []byte(tmplXml), 0777); err != nil {
 		os.Remove(projDir)
 		return err
 	}
@@ -66,20 +68,6 @@ func CreateProject(name, template string) error {
 		content := "/.extensions"
 
 		os.WriteFile(path, []byte(content), 0777)
-	}
-
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(dst, data, 0777)
-	if err != nil {
-		return err
 	}
 
 	return nil
