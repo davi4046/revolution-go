@@ -13,7 +13,7 @@ type %[1]s struct {
 	*/
 }
 
-func (m %[1]s) Generate(i int) types.Note {
+func (g %[1]s) Generate(i int) types.Note {
 
 	return types.Note{
 		Midinote: 60,
