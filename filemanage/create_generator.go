@@ -1,7 +1,8 @@
 package filemanage
 
-func CreateGenerator(name, outDir string) error {
-	template := `package main
+// Creates a new generator component in the current working directory.
+func CreateGenerator(name string) error {
+	base := `package main
 
 import "components/types"
 
@@ -22,7 +23,7 @@ func (g %[1]s) Generate(i int) types.Note {
 }
 `
 
-	if err := createComponent(name, template, outDir); err != nil {
+	if err := createComponent(name, base); err != nil {
 		return err
 	}
 

@@ -10,30 +10,37 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-func createComponent(name, template, outDir string) error {
+// Creates a new component in the current working directory.
+func createComponent(name, base string) error {
+
+	// Get working directory
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
 	camelCaseName := strcase.ToCamel(name)
 	snakeCaseName := strcase.ToSnake(name)
-	// lowerCaseName := strings.ToLower(camelCaseName)
 
-	data := fmt.Sprintf(template, camelCaseName) // Insert name into template
+	compData := fmt.Sprintf(base, camelCaseName) // Insert name into template
 
-	dir := filepath.Join(outDir, snakeCaseName)
+	compDir := filepath.Join(wd, snakeCaseName)
 
-	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+	if _, err := os.Stat(compDir); !os.IsNotExist(err) {
 		log.Fatalln("Failed to create component: A component by the same name already exists.")
 	}
 
-	if err := os.Mkdir(dir, 0777); err != nil {
+	if err := os.Mkdir(compDir, 0777); err != nil {
 		return err
 	}
 
-	path := filepath.Join(dir, snakeCaseName+".go")
+	path := filepath.Join(compDir, snakeCaseName+".go")
 
-	if err := os.WriteFile(path, []byte(data), 0777); err != nil {
+	if err := os.WriteFile(path, []byte(compData), 0777); err != nil {
 		return err
 	}
 
-	if err := os.Chdir(dir); err != nil {
+	if err := os.Chdir(compDir); err != nil {
 		return err
 	}
 

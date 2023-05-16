@@ -1,7 +1,8 @@
 package filemanage
 
-func CreateModifier(name, outDir string) error {
-	template := `package main
+// Creates a new modifier component in the current working directory.
+func CreateModifier(name string) error {
+	base := `package main
 
 import "components/types"
 
@@ -19,7 +20,7 @@ func (m %[1]s) Modify(in [][]types.Note) [][]types.Note {
 }
 `
 
-	if err := createComponent(name, template, outDir); err != nil {
+	if err := createComponent(name, base); err != nil {
 		return err
 	}
 

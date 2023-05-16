@@ -4,10 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
-
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	fm "revolution/filemanage"
 )
@@ -25,13 +22,9 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		componentDir := viper.GetString("component_directory")
-
-		if componentDir == "" {
-			log.Fatalln("Component directory is unspecified.")
+		if err := fm.CreateGenerator(args[0]); err != nil {
+			return err
 		}
-
-		fm.CreateGenerator(args[0], componentDir)
 
 		return nil
 	},
