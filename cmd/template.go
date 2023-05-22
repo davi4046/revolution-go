@@ -5,7 +5,8 @@ package cmd
 
 import (
 	"log"
-	fm "revolution/filemanage"
+
+	"revolution/project"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -29,7 +30,7 @@ to quickly create a Cobra application.`,
 			log.Fatalln("Template directory is unspecified.")
 		}
 
-		if err := fm.CreateTemplate(args[0], templateDir); err != nil {
+		if err := project.CreateTemplate(args[0], templateDir); err != nil {
 			return err
 		}
 

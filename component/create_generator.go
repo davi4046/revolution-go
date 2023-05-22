@@ -1,4 +1,4 @@
-package filemanage
+package component
 
 // Creates a new generator component in the current working directory.
 func CreateGenerator(name string) error {

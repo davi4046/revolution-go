@@ -6,7 +6,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	fm "revolution/filemanage"
+	"revolution/component"
 )
 
 // generatorCmd represents the generator command
@@ -22,7 +22,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		if err := fm.CreateGenerator(args[0]); err != nil {
+		if err := component.CreateGenerator(args[0]); err != nil {
 			return err
 		}
 

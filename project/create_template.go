@@ -1,4 +1,4 @@
-package filemanage
+package project
 
 import (
 	"os"

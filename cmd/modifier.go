@@ -4,7 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	fm "revolution/filemanage"
+	"revolution/component"
 
 	"github.com/spf13/cobra"
 )
@@ -22,7 +22,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		if err := fm.CreateModifier(args[0]); err != nil {
+		if err := component.CreateModifier(args[0]); err != nil {
 			return err
 		}
 

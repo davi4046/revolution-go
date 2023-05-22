@@ -1,4 +1,4 @@
-package filemanage
+package component
 
 import (
 	"fmt"

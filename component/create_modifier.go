@@ -1,4 +1,4 @@
-package filemanage
+package component
 
 // Creates a new modifier component in the current working directory.
 func CreateModifier(name string) error {
