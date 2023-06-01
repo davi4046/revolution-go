@@ -1,0 +1,6 @@
+name: Generator
+type: generator
+version: 1.0.0
+author: Your Name Here
+description: |
+  Describe your generator here.

@@ -1,0 +1,74 @@
+package main
+
+import (
+	"bufio"
+	_ "embed"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+)
+
+//go:embed revocomp.yaml
+var yaml string
+
+//go:embed {{.XSDFileName}}
+var xsd string
+
+func main() {
+	if len(os.Args) == 2 {
+		if os.Args[1] == "info" {
+			fmt.Println(yaml)
+			return
+		} else if os.Args[1] == "xsd" {
+			fmt.Println(xsd)
+			return
+		}
+	}
+	if len(os.Args) == {{.NArgs}} {
+
+		{{.Conversions}}
+
+		modifier := newModifier({{.Args}})
+
+		reader := bufio.NewReader(os.Stdin)
+
+		for {
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			input = strings.TrimSpace(input)
+			input = strings.Trim(input, "[]")
+			input = strings.ReplaceAll(input, "}", " ")
+			
+			slice = strings.Split(input, "{")[1:]
+
+			var notes struct{pitch int; duration float64}
+
+			for _, v := range slice {
+
+				cut := strings.Cut(v, " ")
+
+				pitch, err := strconv.Atoi(cut[0])
+				if err != nil {
+					return err
+				}
+
+				duration, err := strconv.ParseFloat(cut[1], 64)
+				if err != nil {
+					return err
+				}
+
+				notes = append(notes, struct{pitch int; duration float64}{
+					pitch: pitch,
+					duration: duration,
+				})
+			}
+
+			fmt.Println(modifier.modify(notes))
+		}
+	}
+}

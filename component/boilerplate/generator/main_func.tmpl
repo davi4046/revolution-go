@@ -1,0 +1,53 @@
+package main
+
+import (
+	"bufio"
+	_ "embed"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+)
+
+//go:embed revocomp.yaml
+var yaml string
+
+//go:embed {{.XSDFileName}}
+var xsd string
+
+func main() {
+	if len(os.Args) == 2 {
+		if os.Args[1] == "info" {
+			fmt.Println(yaml)
+			return
+		} else if os.Args[1] == "xsd" {
+			fmt.Println(xsd)
+			return
+		}
+	}
+	if len(os.Args) == {{.NArgs}} {
+
+		{{.Conversions}}
+
+		generator := newGenerator({{.Args}})
+
+		reader := bufio.NewReader(os.Stdin)
+
+		for {
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			input = strings.TrimSpace(input)
+
+			index, err := strconv.Atoi(input)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			fmt.Println(generator.generate(index))
+		}
+	}
+}
