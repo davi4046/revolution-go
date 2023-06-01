@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	"revolution/component"
 
 	"github.com/spf13/cobra"
@@ -20,13 +21,11 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 
 		if err := component.CreateModifier(args[0]); err != nil {
-			return err
+			log.Fatalln(err)
 		}
-
-		return nil
 	},
 }
 
