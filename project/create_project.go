@@ -2,6 +2,7 @@ package project
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,12 +18,12 @@ func CreateProject(name, template string) error {
 
 	/* Get template data */
 
-	assetDir := viper.GetString("asset_directory")
-	tmplPath := filepath.Join(assetDir, "templates", template+".template")
+	resourceDir := viper.GetString("resource_directory")
+	tmplPath := filepath.Join(resourceDir, "templates", template+".template")
 
 	data, err := os.ReadFile(tmplPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("template not found")
 	}
 
 	/* Create project directory */
@@ -46,9 +47,9 @@ func CreateProject(name, template string) error {
 		return err
 	}
 
-	/* Create .rlml file */
+	/* Create revoproj.xml file */
 
-	xmlPath := filepath.Join(projDir, ".rlml")
+	xmlPath := filepath.Join(projDir, "revoproj.xml")
 	tmplXml := string(data)
 
 	if err = os.WriteFile(xmlPath, []byte(tmplXml), 0777); err != nil {
