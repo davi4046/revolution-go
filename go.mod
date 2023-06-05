@@ -15,6 +15,27 @@ require (
 )
 
 require (
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/pborman/uuid v1.2.1 // indirect
+	github.com/pschlump/Go-FTL v0.7.6 // indirect
+	github.com/pschlump/MiscLib v1.0.3 // indirect
+	github.com/pschlump/ansi v1.0.1 // indirect
+	github.com/pschlump/dbgo v1.0.6 // indirect
+	github.com/pschlump/filelib v1.0.9 // indirect
+	github.com/pschlump/godebug v1.0.4 // indirect
+	github.com/pschlump/json v1.12.0 // indirect
+	github.com/pschlump/radix.v2 v0.2.1 // indirect
+	github.com/pschlump/uuid v1.0.3 // indirect
+	github.com/pschlump/xml-diff v0.0.2 // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
+	github.com/taskcluster/slugid-go v1.1.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+)
+
+require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

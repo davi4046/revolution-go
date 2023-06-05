@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	interp "revolution/interpret"
+	"revolution/interpret"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,20 +30,20 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		rlmlPath := filepath.Join(wd, ".rlml")
+		filePath := filepath.Join(wd, "revoproj.xml")
 
 		/* Spawn Editor */
 
 		editorPath := viper.GetString("editor_path")
 
-		editorCmd := exec.Command(editorPath, wd, rlmlPath)
+		editorCmd := exec.Command(editorPath, wd, filePath)
 		if _, err = editorCmd.Output(); err != nil {
 			return err
 		}
 
 		/* Start interpreter */
 
-		err = interp.Watch(rlmlPath)
+		err = interpret.Interpret(wd)
 		if err != nil {
 			return err
 		}

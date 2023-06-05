@@ -27,14 +27,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type info struct {
-	Name        string `yaml:"name"`
-	Type        string `yaml:"type"`
-	Version     string `yaml:"version"`
-	Author      string `yaml:"author"`
-	Description string `yaml:"description"`
-}
-
 // CompileComponent compiles the current working directory as a Revolution component
 // and outputs an executable in specified outDir.
 func CompileComponent(outDir string) error {
@@ -57,7 +49,7 @@ func CompileComponent(outDir string) error {
 
 	// Read component info
 	xsdData, _ := os.ReadFile("revocomp.yaml")
-	var info info
+	var info Info
 	yaml.Unmarshal(xsdData, &info)
 
 	srcCode, _ := os.ReadFile(filepath.Join(wd, "revocomp.go"))
@@ -83,7 +75,8 @@ func CompileComponent(outDir string) error {
 	}
 
 	element := etree.NewElement("xs:element")
-	element.CreateAttr("name", info.Name)
+	elementName := info.Name + "-" + info.Version
+	element.CreateAttr("name", elementName)
 	complexType := element.CreateElement("xs:complexType")
 
 	for _, attribute := range attributes {
@@ -205,7 +198,7 @@ func validateComponent(dir string) error {
 		return err
 	}
 
-	var info info
+	var info Info
 	if err := yaml.Unmarshal(yamlData, &info); err != nil {
 		return err
 	}
@@ -598,6 +591,7 @@ func generateAttribute(name, goType, doc string, restrictions map[string]string)
 
 	attribute := etree.NewElement("xs:attribute")
 	attribute.CreateAttr("name", name)
+	attribute.CreateAttr("use", "required")
 
 	if doc != "" {
 		annotation := attribute.CreateElement("xs:annotation")
@@ -619,7 +613,7 @@ func generateAttribute(name, goType, doc string, restrictions map[string]string)
 	}
 
 	for key, value := range restrictions {
-		el := restriction.CreateElement(key)
+		el := restriction.CreateElement("xs:" + key)
 		el.CreateAttr("value", value)
 	}
 
