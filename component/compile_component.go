@@ -36,7 +36,7 @@ type info struct {
 }
 
 // CompileComponent compiles the current working directory as a Revolution component
-// and outputs a binary executable in the components directory under the config-specified resource directory.
+// and outputs an executable in specified outDir.
 func CompileComponent(outDir string) error {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -183,7 +183,8 @@ func CompileComponent(outDir string) error {
 	}
 
 	src := filepath.Join(tempDir, buildName)
-	dest := filepath.Join(outDir, strcase.ToSnake(info.Name)+".revocomp")
+	destName := strcase.ToCamel(info.Name) + "@" + info.Version + ".revocomp"
+	dest := filepath.Join(outDir, destName)
 
 	if err := copy.Copy(src, dest); err != nil {
 		return err
