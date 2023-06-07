@@ -1,18 +1,145 @@
 package interpret
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"path/filepath"
 	"revolution/component"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/beevik/etree"
 	"github.com/radovskyb/watcher"
 	"golang.org/x/exp/slices"
 )
+
+type note struct {
+	degree   int
+	duration float64
+}
+
+type generationSettings struct {
+	path   string
+	args   []string
+	length float64
+}
+
+type generationManager struct {
+	settings   generationSettings
+	command    *exec.Cmd
+	stdin      *io.WriteCloser
+	stdout     *io.ReadCloser
+	generation []note
+}
+
+func (g *generationManager) update(settings generationSettings, wg *sync.WaitGroup) {
+	hasArgsChanged := !slices.Equal(settings.args, g.settings.args)
+	hasPathChanged := settings.path != g.settings.path
+	hasLengthChanged := settings.length != g.settings.length
+
+	if hasArgsChanged || hasPathChanged {
+		g.settings = settings
+		g.regenerate(wg)
+	} else if hasLengthChanged {
+		diff := settings.length - g.settings.length
+		if diff > 0 {
+			g.extentGeneration(diff, wg)
+			g.settings.length = settings.length
+		}
+	} else {
+		wg.Done()
+	}
+}
+
+func (g *generationManager) regenerate(wg *sync.WaitGroup) {
+	g.command = exec.Command(g.settings.path, g.settings.args...)
+
+	stdin, err := g.command.StdinPipe()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	stdout, err := g.command.StdoutPipe()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	g.stdin = &stdin
+	g.stdout = &stdout
+
+	if err := g.command.Start(); err != nil {
+		log.Fatalln(err)
+	}
+
+	generation := g.generate(0, g.settings.length, wg)
+
+	g.generation = generation
+}
+
+func (g *generationManager) extentGeneration(length float64, wg *sync.WaitGroup) {
+	startIndex := len(g.generation)
+
+	generation := g.generate(startIndex, length, wg)
+
+	g.generation = append(g.generation, generation...)
+}
+
+func (g generationManager) generate(startIndex int, length float64, wg *sync.WaitGroup) []note {
+	defer wg.Done()
+
+	var generation []note
+	var currIndex int
+	var currLength float64
+
+	writeIndex := func() {
+		_, err := io.WriteString(*g.stdin, fmt.Sprintf("%d\n", currIndex))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		currIndex++
+	}
+
+	scanner := bufio.NewScanner(*g.stdout)
+
+	writeIndex()
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Process line
+		degreeStr, durationStr, ok := strings.Cut(line, " ")
+		if !ok {
+			log.Fatalln("Invalid generator output:", line)
+		}
+		degree, err := strconv.Atoi(degreeStr)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		duration, err := strconv.ParseFloat(durationStr, 64)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		generation = append(generation, note{
+			degree:   degree,
+			duration: duration,
+		})
+
+		currLength += duration
+
+		if currLength > length {
+			break
+		}
+
+		writeIndex()
+	}
+
+	return generation
+}
 
 // Begin interpreting the specified project directory.
 func Interpret(dir string) error {
@@ -21,6 +148,8 @@ func Interpret(dir string) error {
 	w.FilterOps(watcher.Write)
 
 	xsdFilePath := filepath.Join(dir, ".xsd")
+
+	generators := make(map[string]*generationManager)
 
 	go func() {
 		for {
@@ -36,8 +165,7 @@ func Interpret(dir string) error {
 					break
 				}
 
-				definitions := xmlDoc.Root().FindElement("Definitions")
-				genDefs := definitions.FindElements("GenDef")
+				genDefs := xmlDoc.FindElements("//Definitions/GenDef")
 
 				for _, genDef := range genDefs {
 					childElements := genDef.ChildElements()
@@ -139,6 +267,93 @@ func Interpret(dir string) error {
 
 				if err := xsdDoc.WriteToFile(xsdFilePath); err != nil {
 					log.Fatalln("Failed to update project XSD")
+				}
+
+				/* Generation */
+
+				var usedGenDefIDs []string
+
+				items := xmlDoc.FindElements("//Channels/Channel/Track/Item")
+
+				for _, item := range items {
+					id := item.SelectAttrValue("ref", "")
+					if id == "" {
+						continue
+					}
+					if slices.Contains(usedGenDefIDs, id) {
+						continue
+					}
+					usedGenDefIDs = append(usedGenDefIDs, id)
+				}
+
+				newSettings := make(map[string]*generationSettings)
+
+				for _, genDef := range genDefs {
+					id := genDef.SelectAttrValue("id", "")
+
+					if !slices.Contains(usedGenDefIDs, id) {
+						delete(generators, id)
+						continue
+					}
+
+					childElements := genDef.ChildElements()
+					if len(childElements) == 0 {
+						continue
+					}
+					firstChild := childElements[0]
+
+					appinfo := genDefChoice.FindElement(
+						fmt.Sprintf("//xs:element[@ref='%s']/xs:annotation/xs:appinfo", firstChild.Tag),
+					)
+
+					path := appinfo.Text()
+
+					var args []string
+
+					for _, attr := range firstChild.Attr {
+						args = append(args, attr.Value)
+					}
+
+					newSettings[id] = &generationSettings{
+						path: path,
+						args: args,
+					}
+				}
+
+				for _, item := range items {
+					id := item.SelectAttrValue("ref", "")
+					if !slices.Contains(usedGenDefIDs, id) {
+						continue
+					}
+
+					if _, ok := newSettings[id]; !ok {
+						continue
+					}
+
+					length, _ := strconv.ParseFloat(item.SelectAttrValue("length", ""), 64)
+					offset, _ := strconv.ParseFloat(item.SelectAttrValue("offset", ""), 64)
+					end := length + offset
+
+					if end > newSettings[id].length {
+						newSettings[id].length = end
+					}
+				}
+
+				var wg sync.WaitGroup
+
+				wg.Add(len(newSettings))
+
+				for id, settings := range newSettings {
+					if _, ok := generators[id]; !ok {
+						generators[id] = &generationManager{}
+					}
+					go generators[id].update(*settings, &wg)
+				}
+
+				wg.Wait()
+
+				for id, g := range generators {
+					fmt.Printf("%s:\n%v\n", id, g.generation)
 				}
 
 			case err := <-w.Error:

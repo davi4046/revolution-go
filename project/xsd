@@ -92,7 +92,7 @@
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
-                <xs:element ref="Track" maxOccurs="unbounded" />
+                <xs:element ref="Track" minOccurs="0" maxOccurs="unbounded" />
             </xs:sequence>
             <xs:attribute name="instrument" type="instrument" use="required">
                 <xs:annotation>
@@ -108,19 +108,38 @@
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
-                <xs:element ref="Item" maxOccurs="unbounded" />
+                <xs:element ref="Item" minOccurs="0" maxOccurs="unbounded" />
             </xs:sequence>
         </xs:complexType>
     </xs:element>
 
     <xs:element name="Item">
         <xs:complexType>
-            <xs:choice>
-                <xs:element ref="Gen"></xs:element>
-                <xs:element ref="Mod"></xs:element>
-            </xs:choice>
-            <xs:attribute name="beat" type="beat" use="required" />
-            <xs:attribute name="length" type="length" use="required" />
+            <xs:attribute name="length" type="length" use="required">
+                <xs:annotation>
+                    <xs:documentation> The length of the generation in whole notes. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="ref" type="id">
+                <xs:annotation>
+                    <xs:documentation> Must reference the ID of a GenDef. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="add" type="xs:positiveInteger">
+                <xs:annotation>
+                    <xs:documentation> The number of scale degrees to raise the generation. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="sub" type="xs:positiveInteger">
+                <xs:annotation>
+                    <xs:documentation> The number of scale degrees to lower the generation. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="offset" type="beat">
+                <xs:annotation>
+                    <xs:documentation> The offset of the generation in whole notes. </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
         </xs:complexType>
     </xs:element>
 
