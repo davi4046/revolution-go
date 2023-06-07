@@ -135,7 +135,7 @@
                     <xs:documentation> The number of scale degrees to lower the generation. </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
-            <xs:attribute name="offset" type="beat">
+            <xs:attribute name="offset" type="xs:double">
                 <xs:annotation>
                     <xs:documentation> The offset of the generation in whole notes. </xs:documentation>
                 </xs:annotation>

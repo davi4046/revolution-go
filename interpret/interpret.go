@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os/exec"
 	"path/filepath"
 	"revolution/component"
@@ -19,14 +20,15 @@ import (
 )
 
 type note struct {
-	degree   int
-	duration float64
+	degree int
+	start  float64
 }
 
 type generationSettings struct {
-	path   string
-	args   []string
-	length float64
+	path  string
+	args  []string
+	start float64
+	end   float64
 }
 
 type generationManager struct {
@@ -38,25 +40,30 @@ type generationManager struct {
 }
 
 func (g *generationManager) update(settings generationSettings, wg *sync.WaitGroup) {
-	hasArgsChanged := !slices.Equal(settings.args, g.settings.args)
 	hasPathChanged := settings.path != g.settings.path
-	hasLengthChanged := settings.length != g.settings.length
+	hasArgsChanged := !slices.Equal(settings.args, g.settings.args)
+	hasStartChanged := settings.start != g.settings.start
+	hasEndChanged := settings.end != g.settings.end
 
-	if hasArgsChanged || hasPathChanged {
-		g.settings = settings
+	g.settings = settings
+
+	if hasPathChanged || hasArgsChanged {
+		wg.Add(1)
+		g.initialize(wg)
 		g.regenerate(wg)
-	} else if hasLengthChanged {
-		diff := settings.length - g.settings.length
-		if diff > 0 {
-			g.extentGeneration(diff, wg)
-			g.settings.length = settings.length
-		}
-	} else {
-		wg.Done()
+		return
 	}
+	if hasStartChanged || hasEndChanged {
+		g.regenerate(wg)
+		return
+	}
+
+	wg.Done()
 }
 
-func (g *generationManager) regenerate(wg *sync.WaitGroup) {
+func (g *generationManager) initialize(wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	g.command = exec.Command(g.settings.path, g.settings.args...)
 
 	stdin, err := g.command.StdinPipe()
@@ -75,33 +82,57 @@ func (g *generationManager) regenerate(wg *sync.WaitGroup) {
 	if err := g.command.Start(); err != nil {
 		log.Fatalln(err)
 	}
-
-	generation := g.generate(0, g.settings.length, wg)
-
-	g.generation = generation
 }
 
-func (g *generationManager) extentGeneration(length float64, wg *sync.WaitGroup) {
-	startIndex := len(g.generation)
-
-	generation := g.generate(startIndex, length, wg)
-
-	g.generation = append(g.generation, generation...)
+func (g *generationManager) regenerate(wg *sync.WaitGroup) {
+	g.generation = g.generateFromTo(g.settings.start, g.settings.end, wg)
 }
 
-func (g generationManager) generate(startIndex int, length float64, wg *sync.WaitGroup) []note {
+func (g *generationManager) generateFromTo(from float64, to float64, wg *sync.WaitGroup) []note {
+	wg.Add(1)
+
+	negativeGen := g.generate(-1, math.Min(from, 0), wg)
+	positiveGen := g.generate(0, math.Max(to, 0), wg)
+
+	generation := append(negativeGen, positiveGen...)
+
+	i, isNoteOnFrom := binarySearchNote(generation, from)
+	j, _ := binarySearchNote(generation, to)
+
+	if !isNoteOnFrom {
+		i -= 1
+	}
+
+	generation = generation[i:j]
+
+	generation[0].start = from
+
+	return generation
+}
+
+func (g *generationManager) generate(startIndex int, length float64, wg *sync.WaitGroup) []note {
 	defer wg.Done()
 
 	var generation []note
-	var currIndex int
+
+	if length == 0 {
+		return generation
+	}
+
 	var currLength float64
+
+	currIndex := startIndex
 
 	writeIndex := func() {
 		_, err := io.WriteString(*g.stdin, fmt.Sprintf("%d\n", currIndex))
 		if err != nil {
 			log.Fatalln(err)
 		}
-		currIndex++
+		if length > 0 {
+			currIndex++
+		} else {
+			currIndex--
+		}
 	}
 
 	scanner := bufio.NewScanner(*g.stdout)
@@ -111,34 +142,75 @@ func (g generationManager) generate(startIndex int, length float64, wg *sync.Wai
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// Process line
 		degreeStr, durationStr, ok := strings.Cut(line, " ")
 		if !ok {
 			log.Fatalln("Invalid generator output:", line)
 		}
+
 		degree, err := strconv.Atoi(degreeStr)
 		if err != nil {
 			log.Fatalln(err)
 		}
+
 		duration, err := strconv.ParseFloat(durationStr, 64)
 		if err != nil {
 			log.Fatalln(err)
 		}
+
+		start := currLength
+		if length < 0 {
+			start -= duration
+		}
+
 		generation = append(generation, note{
-			degree:   degree,
-			duration: duration,
+			degree: degree,
+			start:  start,
 		})
 
-		currLength += duration
-
-		if currLength > length {
-			break
+		if length > 0 {
+			currLength += duration
+			if currLength >= length {
+				break
+			}
+		} else {
+			currLength -= duration
+			if currLength <= length {
+				generation = reverse(generation)
+				break
+			}
 		}
 
 		writeIndex()
 	}
 
 	return generation
+}
+
+func (g *generationManager) getFromTo(from float64, to float64) []note {
+	i, isNoteOnFrom := binarySearchNote(g.generation, from)
+	j, _ := binarySearchNote(g.generation, to)
+
+	if !isNoteOnFrom {
+		i -= 1
+	}
+
+	part := g.generation[i-1 : j]
+
+	part[0].start = from
+
+	return part
+}
+
+func binarySearchNote(slice []note, start float64) (int, bool) {
+	return slices.BinarySearchFunc(slice, note{start: start}, func(element note, target note) int {
+		if target.start > element.start {
+			return -1
+		}
+		if target.start < element.start {
+			return 1
+		}
+		return 0
+	})
 }
 
 // Begin interpreting the specified project directory.
@@ -246,8 +318,6 @@ func Interpret(dir string) error {
 						continue
 					}
 
-					fmt.Println("trying to remove", addedComponent)
-
 					element := xsdDoc.FindElement(
 						fmt.Sprintf("//xs:element[@name='%s']", addedComponent),
 					)
@@ -273,10 +343,10 @@ func Interpret(dir string) error {
 
 				var usedGenDefIDs []string
 
-				items := xmlDoc.FindElements("//Channels/Channel/Track/Item")
+				xmlItems := xmlDoc.FindElements("//Channels/Channel/Track/Item")
 
-				for _, item := range items {
-					id := item.SelectAttrValue("ref", "")
+				for _, xmlItem := range xmlItems {
+					id := xmlItem.SelectAttrValue("ref", "")
 					if id == "" {
 						continue
 					}
@@ -320,22 +390,36 @@ func Interpret(dir string) error {
 					}
 				}
 
-				for _, item := range items {
-					id := item.SelectAttrValue("ref", "")
-					if !slices.Contains(usedGenDefIDs, id) {
-						continue
-					}
+				control := make(map[string]*struct {
+					isEndSet   bool
+					isStartSet bool
+				})
+
+				for _, id := range usedGenDefIDs {
+					control[id] = &struct {
+						isEndSet   bool
+						isStartSet bool
+					}{}
+				}
+
+				for _, xmlItem := range xmlItems {
+					id := xmlItem.SelectAttrValue("ref", "")
 
 					if _, ok := newSettings[id]; !ok {
 						continue
 					}
 
-					length, _ := strconv.ParseFloat(item.SelectAttrValue("length", ""), 64)
-					offset, _ := strconv.ParseFloat(item.SelectAttrValue("offset", ""), 64)
-					end := length + offset
+					length, _ := strconv.ParseFloat(xmlItem.SelectAttrValue("length", ""), 64)
+					start, _ := strconv.ParseFloat(xmlItem.SelectAttrValue("offset", ""), 64)
+					end := length + start
 
-					if end > newSettings[id].length {
-						newSettings[id].length = end
+					if start < newSettings[id].start || !control[id].isStartSet {
+						newSettings[id].start = start
+						control[id].isStartSet = true
+					}
+					if end > newSettings[id].end || !control[id].isEndSet {
+						newSettings[id].end = end
+						control[id].isEndSet = true
 					}
 				}
 
@@ -379,4 +463,11 @@ func Interpret(dir string) error {
 	}
 
 	return nil
+}
+
+func reverse[T any](slice []T) []T {
+	for i, j := 0, len(slice)-1; i < j; i, j = i+1, j-1 {
+		slice[i], slice[j] = slice[j], slice[i]
+	}
+	return slice
 }
