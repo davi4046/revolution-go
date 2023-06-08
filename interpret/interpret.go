@@ -343,7 +343,7 @@ func Interpret(dir string) error {
 
 				var usedGenDefIDs []string
 
-				xmlItems := xmlDoc.FindElements("//Channels/Channel/Track/Item")
+				xmlItems := xmlDoc.FindElements("//Channels/GenChannel/Track/Item")
 
 				for _, xmlItem := range xmlItems {
 					id := xmlItem.SelectAttrValue("ref", "")
