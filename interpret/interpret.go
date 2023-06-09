@@ -16,6 +16,7 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/radovskyb/watcher"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -37,6 +38,15 @@ type generationManager struct {
 	stdin      *io.WriteCloser
 	stdout     *io.ReadCloser
 	generation []note
+}
+
+type genItem struct {
+	channel int
+	track   int
+	start   float64
+	end     float64
+	add     int
+	sub     int
 }
 
 func (g *generationManager) update(settings generationSettings, wg *sync.WaitGroup) {
@@ -63,6 +73,8 @@ func (g *generationManager) update(settings generationSettings, wg *sync.WaitGro
 
 func (g *generationManager) initialize(wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	fmt.Println("init with command:", g.settings.path, g.settings.args)
 
 	g.command = exec.Command(g.settings.path, g.settings.args...)
 
@@ -184,21 +196,6 @@ func (g *generationManager) generate(startIndex int, length float64, wg *sync.Wa
 	}
 
 	return generation
-}
-
-func (g *generationManager) getFromTo(from float64, to float64) []note {
-	i, isNoteOnFrom := binarySearchNote(g.generation, from)
-	j, _ := binarySearchNote(g.generation, to)
-
-	if !isNoteOnFrom {
-		i -= 1
-	}
-
-	part := g.generation[i-1 : j]
-
-	part[0].start = from
-
-	return part
 }
 
 func binarySearchNote(slice []note, start float64) (int, bool) {
@@ -341,28 +338,90 @@ func Interpret(dir string) error {
 
 				/* Generation */
 
-				var usedGenDefIDs []string
+				genChannels := xmlDoc.FindElements("//Channels/GenChannel")
 
-				xmlItems := xmlDoc.FindElements("//Channels/GenChannel/Track/Item")
+				genItems := make(map[string][]genItem)
 
-				for _, xmlItem := range xmlItems {
-					id := xmlItem.SelectAttrValue("ref", "")
-					if id == "" {
-						continue
+				for i, channel := range genChannels {
+					tracks := channel.FindElements("//Track")
+					for j, track := range tracks {
+						items := track.FindElements("//Item")
+						for _, item := range items {
+							ref := item.SelectAttrValue("ref", "")
+							lengthStr := item.SelectAttrValue("length", "0")
+							offsetStr := item.SelectAttrValue("offset", "0")
+							addStr := item.SelectAttrValue("add", "0")
+							subStr := item.SelectAttrValue("sub", "0")
+
+							length, err := strconv.ParseFloat(lengthStr, 64)
+							if err != nil {
+								log.Fatalln(err)
+							}
+
+							offset, err := strconv.ParseFloat(offsetStr, 64)
+							if err != nil {
+								log.Fatalln(err)
+							}
+
+							add, err := strconv.Atoi(addStr)
+							if err != nil {
+								log.Fatalln(err)
+							}
+
+							sub, err := strconv.Atoi(subStr)
+							if err != nil {
+								log.Fatalln(err)
+							}
+
+							genItems[ref] = append(genItems[ref],
+								genItem{
+									channel: i,
+									track:   j,
+									start:   offset,
+									end:     offset + length,
+									add:     add,
+									sub:     sub,
+								},
+							)
+						}
 					}
-					if slices.Contains(usedGenDefIDs, id) {
-						continue
-					}
-					usedGenDefIDs = append(usedGenDefIDs, id)
 				}
 
+				fmt.Printf("genItems:\n%v\n", genItems)
+
 				newSettings := make(map[string]*generationSettings)
+
+				for _, id := range maps.Keys(genItems) {
+					var start float64
+					var end float64
+
+					for i, genItem := range genItems[id] {
+						if i == 0 {
+							start = genItem.start
+							end = genItem.end
+							continue
+						}
+						if genItem.start < start {
+							start = genItem.start
+						}
+						if genItem.end > end {
+							end = genItem.end
+						}
+					}
+
+					// TODO: konvertér start og end fra bars til whole notes ifølge time signatures
+
+					newSettings[id] = &generationSettings{
+						start: start,
+						end:   end,
+					}
+				}
 
 				for _, genDef := range genDefs {
 					id := genDef.SelectAttrValue("id", "")
 
-					if !slices.Contains(usedGenDefIDs, id) {
-						delete(generators, id)
+					if _, ok := newSettings[id]; !ok {
+						// The GenDef is unused
 						continue
 					}
 
@@ -384,43 +443,8 @@ func Interpret(dir string) error {
 						args = append(args, attr.Value)
 					}
 
-					newSettings[id] = &generationSettings{
-						path: path,
-						args: args,
-					}
-				}
-
-				control := make(map[string]*struct {
-					isEndSet   bool
-					isStartSet bool
-				})
-
-				for _, id := range usedGenDefIDs {
-					control[id] = &struct {
-						isEndSet   bool
-						isStartSet bool
-					}{}
-				}
-
-				for _, xmlItem := range xmlItems {
-					id := xmlItem.SelectAttrValue("ref", "")
-
-					if _, ok := newSettings[id]; !ok {
-						continue
-					}
-
-					length, _ := strconv.ParseFloat(xmlItem.SelectAttrValue("length", ""), 64)
-					start, _ := strconv.ParseFloat(xmlItem.SelectAttrValue("offset", ""), 64)
-					end := length + start
-
-					if start < newSettings[id].start || !control[id].isStartSet {
-						newSettings[id].start = start
-						control[id].isStartSet = true
-					}
-					if end > newSettings[id].end || !control[id].isEndSet {
-						newSettings[id].end = end
-						control[id].isEndSet = true
-					}
+					newSettings[id].path = path
+					newSettings[id].args = args
 				}
 
 				var wg sync.WaitGroup
@@ -431,6 +455,7 @@ func Interpret(dir string) error {
 					if _, ok := generators[id]; !ok {
 						generators[id] = &generationManager{}
 					}
+					fmt.Println("updating:", id)
 					go generators[id].update(*settings, &wg)
 				}
 
