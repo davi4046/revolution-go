@@ -40,15 +40,6 @@ type generationManager struct {
 	generation []note
 }
 
-type genItem struct {
-	channel int
-	track   int
-	start   float64
-	end     float64
-	add     int
-	sub     int
-}
-
 func (g *generationManager) update(settings generationSettings, wg *sync.WaitGroup) {
 	hasPathChanged := settings.path != g.settings.path
 	hasArgsChanged := !slices.Equal(settings.args, g.settings.args)
@@ -69,6 +60,69 @@ func (g *generationManager) update(settings generationSettings, wg *sync.WaitGro
 	}
 
 	wg.Done()
+}
+
+type genItem struct {
+	channel int
+	track   int
+	start   float64
+	end     float64
+	offset  float64
+	add     int
+	sub     int
+}
+
+type key struct {
+	root string
+	mode string
+}
+
+type timeSignature struct {
+	numerator   uint8
+	denominator uint8
+}
+
+func (t timeSignature) getWholeNotesPerBar() float64 {
+	return 1 / float64(t.denominator) * float64(t.numerator)
+}
+
+func extractKey(el *etree.Element) key {
+	root := el.SelectAttrValue("root", "")
+	mode := el.SelectAttrValue("mode", "")
+	return key{
+		root: root,
+		mode: mode,
+	}
+}
+
+func extractTime(el *etree.Element) (timeSignature, error) {
+	numeratorStr, denominatorStr, ok := strings.Cut(el.Text(), "/")
+	if !ok {
+		return timeSignature{}, fmt.Errorf("'/' is missing")
+	}
+
+	numerator, err := strconv.ParseUint(numeratorStr, 10, 8)
+	if err != nil {
+		return timeSignature{}, err
+	}
+
+	denominator, err := strconv.ParseUint(denominatorStr, 10, 8)
+	if err != nil {
+		return timeSignature{}, err
+	}
+
+	return timeSignature{
+		numerator:   uint8(numerator),
+		denominator: uint8(denominator),
+	}, nil
+}
+
+func extractTempo(el *etree.Element) (uint8, error) {
+	tempo, err := strconv.ParseUint(el.Text(), 10, 8)
+	if err != nil {
+		return 0, err
+	}
+	return uint8(tempo), nil
 }
 
 func (g *generationManager) initialize(wg *sync.WaitGroup) {
@@ -94,6 +148,12 @@ func (g *generationManager) initialize(wg *sync.WaitGroup) {
 	if err := g.command.Start(); err != nil {
 		log.Fatalln(err)
 	}
+}
+
+type change struct {
+	key   key
+	time  timeSignature
+	tempo uint8
 }
 
 func (g *generationManager) regenerate(wg *sync.WaitGroup) {
@@ -343,9 +403,12 @@ func Interpret(dir string) error {
 				genItems := make(map[string][]genItem)
 
 				for i, channel := range genChannels {
-					tracks := channel.FindElements("//Track")
+					tracks := channel.FindElements("Track")
 					for j, track := range tracks {
-						items := track.FindElements("//Item")
+						items := track.FindElements("Item")
+
+						var currBar float64
+
 						for _, item := range items {
 							ref := item.SelectAttrValue("ref", "")
 							lengthStr := item.SelectAttrValue("length", "0")
@@ -373,12 +436,17 @@ func Interpret(dir string) error {
 								log.Fatalln(err)
 							}
 
+							start := currBar
+							currBar += length
+							end := currBar
+
 							genItems[ref] = append(genItems[ref],
 								genItem{
 									channel: i,
 									track:   j,
-									start:   offset,
-									end:     offset + length,
+									start:   start,
+									end:     end,
+									offset:  offset,
 									add:     add,
 									sub:     sub,
 								},
@@ -387,7 +455,74 @@ func Interpret(dir string) error {
 					}
 				}
 
-				fmt.Printf("genItems:\n%v\n", genItems)
+				keyEl := xmlDoc.FindElement("//Key")
+				timeEl := xmlDoc.FindElement("//Time")
+				tempoEl := xmlDoc.FindElement("//Tempo")
+
+				key := extractKey(keyEl)
+				time, err := extractTime(timeEl)
+				if err != nil {
+					log.Fatalln("Invalid Time:", timeEl.Text())
+				}
+				tempo, err := extractTempo(tempoEl)
+				if err != nil {
+					log.Fatalln("Invalid Tempo:", tempoEl.Text())
+				}
+
+				changes := map[uint64]change{
+					0: {
+						key:   key,
+						time:  time,
+						tempo: tempo,
+					},
+				}
+
+				for _, changeEl := range xmlDoc.FindElements("//Changes/Change") {
+
+					barStr := changeEl.SelectAttrValue("bar", "")
+					bar, err := strconv.ParseUint(barStr, 10, 64)
+					if err != nil {
+						log.Fatalln("Invalid Bar:", barStr)
+					}
+
+					keyEl := changeEl.FindElement("Key")
+					timeEl := changeEl.FindElement("Time")
+					tempoEl := changeEl.FindElement("Tempo")
+
+					var change change
+
+					if keyEl == nil {
+						// Key remains the same
+						change.key = maps.Values(changes)[len(changes)-1].key
+					} else {
+						change.key = extractKey(keyEl)
+					}
+					if timeEl == nil {
+						// Time remains the same
+						change.time = maps.Values(changes)[len(changes)-1].time
+					} else {
+						time, err := extractTime(timeEl)
+						if err != nil {
+							log.Fatalln("Invalid Time:", timeEl.Text())
+						}
+						change.time = time
+					}
+
+					if tempoEl == nil {
+						// Tempo remains the same
+						change.tempo = maps.Values(changes)[len(changes)-1].tempo
+					} else {
+						tempo, err := extractTempo(tempoEl)
+						if err != nil {
+							log.Fatalln("Invalid Tempo:", tempoEl.Text())
+						}
+						change.tempo = tempo
+					}
+
+					changes[bar] = change
+				}
+
+				fmt.Printf("changes:\n%v\n", changes)
 
 				newSettings := make(map[string]*generationSettings)
 
@@ -396,16 +531,50 @@ func Interpret(dir string) error {
 					var end float64
 
 					for i, genItem := range genItems[id] {
+
+						var length float64
+
+						barsWithChanges := maps.Keys(changes)
+						slices.Sort(barsWithChanges)
+
+						// Find the length of the item in whole notes with respect to time signatures
+						for i, changeStart := range barsWithChanges {
+
+							var changeEnd float64
+
+							if len(barsWithChanges) > i+1 {
+								changeEnd = float64(barsWithChanges[i+1]) // The start of the next change
+							} else {
+								changeEnd = 1000000000
+							}
+
+							if changeEnd < genItem.start {
+								continue
+							}
+							if float64(changeStart) > genItem.end {
+								break
+							}
+							wholeNotesPerBar := changes[changeStart].time.getWholeNotesPerBar()
+
+							start := math.Max(genItem.start, float64(changeStart))
+							end := math.Min(genItem.end, float64(changeEnd))
+
+							length += (end - start) * wholeNotesPerBar
+						}
+
+						// TODO: Overvej om offset skal være i bars fremfor whole notes
+						// og i såfald i hvilken time signature, det skal interpretes
+
 						if i == 0 {
-							start = genItem.start
-							end = genItem.end
+							start = genItem.offset
+							end = genItem.offset + length
 							continue
 						}
-						if genItem.start < start {
-							start = genItem.start
+						if genItem.offset < start {
+							start = genItem.offset
 						}
-						if genItem.end > end {
-							end = genItem.end
+						if genItem.offset+length > end {
+							end = genItem.offset + length
 						}
 					}
 
