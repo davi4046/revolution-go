@@ -37,26 +37,6 @@
         <xs:element ref="Channels"/>
       </xs:sequence>
     </xs:complexType>
-    <xs:key name="GenDefId">
-    <xs:selector xpath="tns:Definitions/tns:GenDef"/>
-      <xs:field xpath="@id"/>
-    </xs:key>
-    <xs:key name="ModDefId">
-    <xs:selector xpath="tns:Definitions/tns:ModDef"/>
-      <xs:field xpath="@id"/>
-    </xs:key>
-    <xs:keyref name="GenRef" refer="GenDefId">
-    <xs:selector xpath="tns:Channels/tns:GenChannel/tns:Track/tns:Item"/>
-      <xs:field xpath="@ref"/>
-    </xs:keyref>
-    <xs:keyref name="ModRef" refer="ModDefId">
-    <xs:selector xpath="tns:Channels/tns:ModChannel/tns:Track/tns:Item"/>
-      <xs:field xpath="@ref"/>
-    </xs:keyref>
-    <xs:unique name="ChangeBeat">
-    <xs:selector xpath="tns:Changes/tns:Change"/>
-      <xs:field xpath="@beat"/>
-    </xs:unique>
   </xs:element>
   <xs:element name="Definitions">
     <xs:annotation>
@@ -126,7 +106,7 @@
         <xs:element ref="Time" minOccurs="0"/>
         <xs:element ref="Tempo" minOccurs="0"/>
       </xs:all>
-      <xs:attribute name="beat" type="beat" use="required">
+      <xs:attribute name="bar" type="xs:nonNegativeInteger" use="required">
         <xs:annotation>
           <xs:documentation>The beat on which the change takes effect.</xs:documentation>
         </xs:annotation>
@@ -183,12 +163,12 @@
             <xs:sequence>
               <xs:element name="Item" minOccurs="0" maxOccurs="unbounded">
                 <xs:complexType>
-                  <xs:attribute name="length" type="length" use="required"/>
+                  <xs:attribute name="length" type="length" use="required"/>    
                   <xs:attribute name="ref" type="xs:string"/>
+                  <xs:attribute name="target" type="xs:string"/>           
                 </xs:complexType>
               </xs:element>
             </xs:sequence>
-            <xs:attribute name="target" type="xs:string" use="required"/>
           </xs:complexType>
         </xs:element>
       </xs:sequence>
