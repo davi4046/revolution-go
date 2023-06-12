@@ -11,13 +11,11 @@ require (
 
 require (
 	github.com/beevik/etree v1.2.0
+	github.com/davi4046/revoutil v0.0.0-20230612090208-792fcba2cb49
 	github.com/otiai10/copy v1.11.0
 )
 
-require (
-	github.com/davi4046/revoutil v0.0.0-20230612090208-792fcba2cb49 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-)
+require gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
