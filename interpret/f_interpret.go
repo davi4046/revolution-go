@@ -288,24 +288,27 @@ func Interpret(dir string) error {
 						// Find the length of the item in whole notes with respect to time signatures
 						for i, changeStart := range barsWithChanges {
 
-							var changeEnd float64
-
-							if len(barsWithChanges) > i+1 {
-								changeEnd = float64(barsWithChanges[i+1]) // The start of the next change
-							} else {
-								changeEnd = 1000000000
-							}
-
-							if changeEnd < genItem.start {
-								continue
-							}
 							if float64(changeStart) > genItem.end {
+								// The change starts after the item ends
 								break
 							}
-							wholeNotesPerBar := changes[changeStart].time.GetWholeNotesPerBar()
+
+							var end float64
+
+							if len(barsWithChanges) > i+1 {
+								changeEnd := float64(barsWithChanges[i+1]) // The start of the next change
+								if genItem.start > changeEnd {
+									// The item starts after the change ends
+									continue
+								}
+								end = math.Min(genItem.end, float64(changeEnd))
+							} else {
+								end = genItem.end
+							}
 
 							start := math.Max(genItem.start, float64(changeStart))
-							end := math.Min(genItem.end, float64(changeEnd))
+
+							wholeNotesPerBar := changes[changeStart].time.GetWholeNotesPerBar()
 
 							length += (end - start) * wholeNotesPerBar
 						}
