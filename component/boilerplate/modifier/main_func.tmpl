@@ -2,27 +2,29 @@ package main
 
 import (
 	"bufio"
-	_ "embed"
+	"embed"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/davi4046/revoutil"
 )
 
 //go:embed revocomp.yaml
-var yaml string
-
 //go:embed {{.XSDFileName}}
-var xsd string
+var files embed.FS
 
 func main() {
 	if len(os.Args) == 2 {
 		if os.Args[1] == "info" {
-			fmt.Println(yaml)
+			data, _ := files.ReadFile("revocomp.yaml")
+			fmt.Println(string(data))
 			return
 		} else if os.Args[1] == "xsd" {
-			fmt.Println(xsd)
+			data, _ := files.ReadFile("{{.XSDFileName}}")
+			fmt.Println(string(data))
 			return
 		}
 	}
@@ -41,34 +43,37 @@ func main() {
 			}
 
 			input = strings.TrimSpace(input)
-			input = strings.Trim(input, "[]")
-			input = strings.ReplaceAll(input, "}", " ")
-			
-			slice = strings.Split(input, "{")[1:]
 
-			var notes struct{pitch int; duration float64}
+			parts := strings.Split(input, ", ")
 
-			for _, v := range slice {
-
-				cut := strings.Cut(v, " ")
-
-				pitch, err := strconv.Atoi(cut[0])
-				if err != nil {
-					return err
-				}
-
-				duration, err := strconv.ParseFloat(cut[1], 64)
-				if err != nil {
-					return err
-				}
-
-				notes = append(notes, struct{pitch int; duration float64}{
-					pitch: pitch,
-					duration: duration,
-				})
+			pitch, err := strconv.Atoi(parts[0])
+			if err != nil {
+				log.Fatalln(err)
 			}
 
-			fmt.Println(modifier.modify(notes))
+			duration, err := strconv.ParseFloat(parts[1], 64)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			channel, err := strconv.ParseUint(parts[2], 10, 64)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			track, err := strconv.ParseUint(parts[3], 10, 64)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			fmt.Println(modifier.modify(
+				revoutil.Note{
+					Pitch:    pitch,
+					Duration: duration,
+					Channel:  uint(channel),
+					Track:    uint(track),
+				},
+			))
 		}
 	}
 }

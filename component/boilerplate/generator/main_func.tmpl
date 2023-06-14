@@ -11,18 +11,18 @@ import (
 )
 
 //go:embed revocomp.yaml
-var yaml string
-
 //go:embed {{.XSDFileName}}
-var xsd string
+var files embed.FS
 
 func main() {
 	if len(os.Args) == 2 {
 		if os.Args[1] == "info" {
-			fmt.Println(yaml)
+			data, _ := files.ReadFile("revocomp.yaml")
+			fmt.Println(string(data))
 			return
 		} else if os.Args[1] == "xsd" {
-			fmt.Println(xsd)
+			data, _ := files.ReadFile("{{.XSDFileName}}")
+			fmt.Println(string(data))
 			return
 		}
 	}
