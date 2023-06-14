@@ -313,21 +313,21 @@ func validateComponent(dir string) error {
 			if !slices.Equal(
 				astutil.GetSimpleFields(decl.Type.Params.List),
 				[]astutil.SimpleField{{
-					Name: "in",
-					Type: "[]struct {degree int; duration float64}",
+					Name: "note",
+					Type: "revoutil.Note",
 				}},
 			) {
-				return errors.New("function 'modify' must have exactly one parameter named 'in' of type '[]struct {degree int; duration float64}'")
+				return errors.New("function 'modify' must have exactly one parameter named 'note' of type 'revoutil.Note'")
 			}
 
 			if !slices.Equal(
 				astutil.GetSimpleFields(decl.Type.Results.List),
 				[]astutil.SimpleField{{
 					Name: "",
-					Type: "[]struct {degree int; duration float64}",
+					Type: "[]revoutil.Note",
 				}},
 			) {
-				return errors.New("function 'modify' must return exactly one unnamed result of type '[]struct {degree int; duration float64}'")
+				return errors.New("function 'modify' must return exactly one unnamed result of type 'revoutil.Note'")
 			}
 		} else {
 			return errors.New("function 'modify' is missing from revocomp.go")
