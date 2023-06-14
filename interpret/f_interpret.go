@@ -34,7 +34,7 @@ func Interpret(dir string) error {
 			case event := <-w.Event:
 				fmt.Println(event) // Print the event's info.
 
-				var wantedComponents []string
+				wantedComponents := make(map[string]string)
 
 				xmlDoc := etree.NewDocument()
 				if err := xmlDoc.ReadFromFile(event.Path); err != nil {
@@ -50,10 +50,21 @@ func Interpret(dir string) error {
 						continue
 					}
 					firstChild := childElements[0]
-					wantedComponents = append(wantedComponents, firstChild.Tag)
+					wantedComponents[firstChild.Tag] = "generator"
 				}
 
-				var addedComponents []string
+				modDefs := xmlDoc.FindElements("//Definitions/ModDef")
+
+				for _, modDef := range modDefs {
+					childElements := modDef.ChildElements()
+					if len(childElements) == 0 {
+						continue
+					}
+					firstChild := childElements[0]
+					wantedComponents[firstChild.Tag] = "modifier"
+				}
+
+				addedComponents := make(map[string]string)
 
 				xsdDoc := etree.NewDocument()
 				if err := xsdDoc.ReadFromFile(xsdFilePath); err != nil {
@@ -65,77 +76,102 @@ func Interpret(dir string) error {
 					log.Fatalln("XSD file is invalid")
 				}
 
-				genDefChoices := genDefChoice.ChildElements()
-
-				for _, el := range genDefChoices {
+				for _, el := range genDefChoice.ChildElements() {
 					refValue := el.SelectAttrValue("ref", "")
-					addedComponents = append(addedComponents, refValue)
+					addedComponents[refValue] = "generator"
 				}
 
+				modDefChoice := xsdDoc.FindElement("//xs:element[@name='ModDef']/xs:complexType/xs:choice")
+				if modDefChoice == nil {
+					log.Fatalln("XSD file is invalid")
+				}
+
+				for _, el := range modDefChoice.ChildElements() {
+					refValue := el.SelectAttrValue("ref", "")
+					addedComponents[refValue] = "modifier"
+				}
+
+				fmt.Println("Wanted Components:", wantedComponents)
+				fmt.Println("Added Components:", addedComponents)
+
 				// Add wanted components that are not yet added
-				for _, wantedComponent := range wantedComponents {
-					if slices.Contains(addedComponents, wantedComponent) {
+				for tag, kind := range wantedComponents {
+					if slices.Contains(maps.Keys(addedComponents), tag) {
 						// Component is already added
 						continue
 					}
 
-					name, version, ok := strings.Cut(wantedComponent, "-")
+					name, version, ok := strings.Cut(tag, "-")
 					if !ok {
-						fmt.Println("Please specify version for", wantedComponent)
+						fmt.Println("Please specify version for", tag)
 						continue
 					}
 
-					path, found := component.FindComponent(name, version)
+					path, found := component.FindComponent(name, kind, version)
 					if !found {
-						fmt.Println("Failed to locate component", wantedComponent)
+						fmt.Println("Failed to locate component", tag)
 						continue
 					}
 
 					cmd := exec.Command(path, "xsd")
 					output, err := cmd.Output()
 					if err != nil {
-						fmt.Println("Failed to get XSD for component", wantedComponent)
+						fmt.Println("Failed to get XSD for component", tag)
 						continue
 					}
 
 					doc := etree.NewDocument()
 					if err := doc.ReadFromBytes(output); err != nil {
-						fmt.Println("Failed to parse XSD for component", wantedComponent)
+						fmt.Println("Failed to parse XSD for component", tag)
 					}
 
-					xsdDoc.Root().AddChild(doc.Root())
+					docRoot := doc.Root()
+					if docRoot == nil {
+						log.Fatalln("Invalid XSD for component", tag)
+					}
+
+					xsdDoc.Root().AddChild(docRoot)
 
 					reference := etree.NewElement("xs:element")
-					reference.CreateAttr("ref", wantedComponent)
+					reference.CreateAttr("ref", tag)
 
 					// Store path to component
 					annotation := reference.CreateElement("xs:annotation")
 					appinfo := annotation.CreateElement("xs:appinfo")
 					appinfo.SetText(path)
 
-					genDefChoice.AddChild(reference)
+					if kind == "generator" {
+						genDefChoice.AddChild(reference)
+					} else {
+						modDefChoice.AddChild(reference)
+					}
 				}
 
 				// Remove added components that are no longer wanted
-				for _, addedComponent := range addedComponents {
-					if slices.Contains(wantedComponents, addedComponent) {
+				for tag, kind := range addedComponents {
+					if slices.Contains(maps.Keys(wantedComponents), tag) {
 						// Component is still wanted
 						continue
 					}
 
 					element := xsdDoc.FindElement(
-						fmt.Sprintf("//xs:element[@name='%s']", addedComponent),
+						fmt.Sprintf("//xs:element[@name='%s']", tag),
 					)
-					fmt.Println(
-						xsdDoc.Root().RemoveChild(element),
-					)
+					xsdDoc.Root().RemoveChild(element)
 
-					referenceElement := genDefChoice.FindElement(
-						fmt.Sprintf("//xs:element[@ref='%s']", addedComponent),
-					)
-					genDefChoice.RemoveChild(referenceElement)
+					if kind == "generator" {
+						referenceElement := genDefChoice.FindElement(
+							fmt.Sprintf("//xs:element[@ref='%s']", tag),
+						)
+						genDefChoice.RemoveChild(referenceElement)
+					} else {
+						referenceElement := modDefChoice.FindElement(
+							fmt.Sprintf("//xs:element[@ref='%s']", tag),
+						)
+						modDefChoice.RemoveChild(referenceElement)
+					}
 
-					fmt.Println("Removed", addedComponent)
+					fmt.Println("Removed", tag)
 				}
 
 				xsdDoc.IndentTabs()

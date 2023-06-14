@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func FindComponent(name, version string) (string, bool) {
+func FindComponent(name, kind, version string) (string, bool) {
 	resourceDir := viper.GetString("resource_directory")
 	if resourceDir == "" {
 		return "", false
@@ -21,6 +21,10 @@ func FindComponent(name, version string) (string, bool) {
 	var componentPath string
 
 	filepath.Walk(componentDir, func(path string, info fs.FileInfo, err error) error {
+
+		if err != nil {
+			return nil // Continue
+		}
 
 		ext := filepath.Ext(info.Name())
 		if ext != ".revocomp" {
@@ -38,7 +42,11 @@ func FindComponent(name, version string) (string, bool) {
 			return nil // Continue
 		}
 
-		if componentInfo.Name != name || componentInfo.Version != version {
+		isSameName := componentInfo.Name == name
+		isSameType := componentInfo.Type == kind
+		isSameVersion := componentInfo.Version == version
+
+		if !isSameName || !isSameType || !isSameVersion {
 			return nil // Continue
 		}
 
