@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/beevik/etree"
+	"github.com/davi4046/revoutil"
 	"github.com/radovskyb/watcher"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -255,8 +256,9 @@ func Interpret(dir string) error {
 					log.Fatalln("Invalid Tempo:", tempoEl.Text())
 				}
 
-				changes := map[uint64]change{
-					0: {
+				changes := []change{
+					{
+						start: 0,
 						key:   key,
 						time:  time,
 						tempo: tempo,
@@ -265,27 +267,28 @@ func Interpret(dir string) error {
 
 				for _, changeEl := range xmlDoc.FindElements("//Changes/Change") {
 
+					var change change
+
 					barStr := changeEl.SelectAttrValue("bar", "")
-					bar, err := strconv.ParseUint(barStr, 10, 64)
+					bar, err := strconv.ParseFloat(barStr, 64)
 					if err != nil {
 						log.Fatalln("Invalid Bar:", barStr)
 					}
+					change.start = bar
 
 					keyEl := changeEl.FindElement("Key")
 					timeEl := changeEl.FindElement("Time")
 					tempoEl := changeEl.FindElement("Tempo")
 
-					var change change
-
 					if keyEl == nil {
 						// Key remains the same
-						change.key = maps.Values(changes)[len(changes)-1].key
+						change.key = changes[len(changes)-1].key
 					} else {
 						change.key = extractKey(keyEl)
 					}
 					if timeEl == nil {
 						// Time remains the same
-						change.time = maps.Values(changes)[len(changes)-1].time
+						change.time = changes[len(changes)-1].time
 					} else {
 						time, err := extractTime(timeEl)
 						if err != nil {
@@ -296,7 +299,7 @@ func Interpret(dir string) error {
 
 					if tempoEl == nil {
 						// Tempo remains the same
-						change.tempo = maps.Values(changes)[len(changes)-1].tempo
+						change.tempo = changes[len(changes)-1].tempo
 					} else {
 						tempo, err := extractTempo(tempoEl)
 						if err != nil {
@@ -305,7 +308,7 @@ func Interpret(dir string) error {
 						change.tempo = tempo
 					}
 
-					changes[bar] = change
+					changes = append(changes, change)
 				}
 
 				fmt.Printf("changes:\n%v\n", changes)
@@ -324,33 +327,30 @@ func Interpret(dir string) error {
 
 						var length float64
 
-						barsWithChanges := maps.Keys(changes)
-						slices.Sort(barsWithChanges)
-
 						// Find the length of the item in whole notes with respect to time signatures
-						for i, changeStart := range barsWithChanges {
+						for _, change := range changes {
 
-							if float64(changeStart) > genItem.end {
+							if change.start > genItem.end {
 								// The change starts after the item ends
 								break
 							}
 
 							var end float64
 
-							if len(barsWithChanges) > i+1 {
-								changeEnd := float64(barsWithChanges[i+1]) // The start of the next change
+							if len(changes) > i+1 {
+								changeEnd := changes[i+1].start // The start of the next change
 								if genItem.start > changeEnd {
 									// The item starts after the change ends
 									continue
 								}
-								end = math.Min(genItem.end, float64(changeEnd))
+								end = math.Min(genItem.end, changeEnd)
 							} else {
 								end = genItem.end
 							}
 
-							start := math.Max(genItem.start, float64(changeStart))
+							start := math.Max(genItem.start, change.start)
 
-							wholeNotesPerBar := changes[changeStart].time.GetWholeNotesPerBar()
+							wholeNotesPerBar := change.time.GetWholeNotesPerBar()
 
 							length += (end - start) * wholeNotesPerBar
 						}
@@ -429,13 +429,13 @@ func Interpret(dir string) error {
 
 				channels := make(map[int]channel)
 
-				for id, genItems := range genItems {
-					if id == "none" {
+				for genId, genItems := range genItems {
+					if genId == "none" {
 						continue
 					}
 					for _, genItem := range genItems {
 
-						notes := getFromTo(generators[id].generation, genItem.offset, genItem.offset+genItem.length)
+						notes := getFromTo(generators[genId].generation, genItem.offset, genItem.offset+genItem.length)
 						copiedNotes := make([]Note, len(notes))
 						copy(copiedNotes, notes)
 
@@ -462,6 +462,32 @@ func Interpret(dir string) error {
 						})
 					}
 				}
+
+				func() {
+					var keys []*revoutil.Key
+
+					for _, change := range changes {
+						keys = append(keys, revoutil.NewKey(change.key.root, change.key.mode))
+					}
+
+					for _, ch := range channels {
+						for _, tr := range ch {
+
+							var changeIndex int
+
+							for i := range tr {
+								for changeIndex+1 < len(changes) {
+									if tr[i].Start >= changes[changeIndex+1].start {
+										changeIndex++
+									} else {
+										break
+									}
+								}
+								tr[i].Value = keys[changeIndex].DegreeToMIDI(tr[i].Value)
+							}
+						}
+					}
+				}()
 
 				jsonData, err := json.MarshalIndent(channels, "", "  ")
 				if err != nil {

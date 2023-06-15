@@ -54,6 +54,12 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davi4046/revoutil v0.0.0-20230612090208-792fcba2cb49 h1:/g149+E03ZHggq/utXEfxX7qFaeLNLGhQfhhaR0aJ/I=
 github.com/davi4046/revoutil v0.0.0-20230612090208-792fcba2cb49/go.mod h1:1QZVACLuCaWVaqKWtKUeu05hjnFPoNufE9aF+F35bvY=
+github.com/davi4046/revoutil v0.0.0-20230615094612-1949d4fedf0c h1:P66l8sFKkxmQyIMSJpYkIAJo6y/ldYUj/I9DVF2/41g=
+github.com/davi4046/revoutil v0.0.0-20230615094612-1949d4fedf0c/go.mod h1:1QZVACLuCaWVaqKWtKUeu05hjnFPoNufE9aF+F35bvY=
+github.com/davi4046/revoutil v0.0.0-20230615100123-678244b62c74 h1:ejFvIZ3HeKU1lLhd32+F7fOoewDF6RSft+VYahE3rZk=
+github.com/davi4046/revoutil v0.0.0-20230615100123-678244b62c74/go.mod h1:1QZVACLuCaWVaqKWtKUeu05hjnFPoNufE9aF+F35bvY=
+github.com/davi4046/revoutil v0.0.0-20230615103419-7a1463e2f8f8 h1:SxeH1nHD/yPp31jmZHq8hWQOIhZ+dKF3gQqPFQlglRk=
+github.com/davi4046/revoutil v0.0.0-20230615103419-7a1463e2f8f8/go.mod h1:1QZVACLuCaWVaqKWtKUeu05hjnFPoNufE9aF+F35bvY=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
