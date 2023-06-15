@@ -18,3 +18,23 @@ func binarySearchNote(slice []note, start float64) (int, bool) {
 		return 0
 	})
 }
+
+func getFromTo(slice []note, from float64, to float64) []note {
+
+	i, isNoteOnFrom := binarySearchNote(slice, from)
+	j, _ := binarySearchNote(slice, to)
+
+	if !isNoteOnFrom {
+		i -= 1
+	}
+
+	slice = slice[i:j]
+
+	if len(slice) == 0 {
+		return slice
+	}
+
+	slice[0].start = from
+
+	return slice
+}

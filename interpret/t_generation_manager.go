@@ -81,18 +81,7 @@ func (g *generationManager) generateFromTo(from float64, to float64, wg *sync.Wa
 
 	generation := append(negativeGen, positiveGen...)
 
-	i, isNoteOnFrom := binarySearchNote(generation, from)
-	j, _ := binarySearchNote(generation, to)
-
-	if !isNoteOnFrom {
-		i -= 1
-	}
-
-	generation = generation[i:j]
-
-	generation[0].start = from
-
-	return generation
+	return getFromTo(generation, from, to)
 }
 
 func (g *generationManager) generate(startIndex int, length float64, wg *sync.WaitGroup) []note {
