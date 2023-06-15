@@ -19,7 +19,7 @@ type generationManager struct {
 	command    *exec.Cmd
 	stdin      *io.WriteCloser
 	stdout     *io.ReadCloser
-	generation []note
+	generation []Note
 }
 
 func (g *generationManager) update(settings generationSettings, wg *sync.WaitGroup) {
@@ -73,7 +73,7 @@ func (g *generationManager) regenerate(wg *sync.WaitGroup) {
 	g.generation = g.generateFromTo(g.settings.start, g.settings.end, wg)
 }
 
-func (g *generationManager) generateFromTo(from float64, to float64, wg *sync.WaitGroup) []note {
+func (g *generationManager) generateFromTo(from float64, to float64, wg *sync.WaitGroup) []Note {
 	wg.Add(1)
 
 	negativeGen := g.generate(-1, math.Min(from, 0), wg)
@@ -84,10 +84,10 @@ func (g *generationManager) generateFromTo(from float64, to float64, wg *sync.Wa
 	return getFromTo(generation, from, to)
 }
 
-func (g *generationManager) generate(startIndex int, length float64, wg *sync.WaitGroup) []note {
+func (g *generationManager) generate(startIndex int, length float64, wg *sync.WaitGroup) []Note {
 	defer wg.Done()
 
-	var generation []note
+	var generation []Note
 
 	if length == 0 {
 		return generation
@@ -136,9 +136,9 @@ func (g *generationManager) generate(startIndex int, length float64, wg *sync.Wa
 			start -= duration
 		}
 
-		generation = append(generation, note{
-			degree: degree,
-			start:  start,
+		generation = append(generation, Note{
+			Value: degree,
+			Start: start,
 		})
 
 		if length > 0 {

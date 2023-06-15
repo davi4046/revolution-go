@@ -2,24 +2,24 @@ package interpret
 
 import "golang.org/x/exp/slices"
 
-type note struct {
-	start  float64
-	degree int
+type Note struct {
+	Start float64 `json:"start"`
+	Value int     `json:"value"`
 }
 
-func binarySearchNote(slice []note, start float64) (int, bool) {
-	return slices.BinarySearchFunc(slice, note{start: start}, func(element note, target note) int {
-		if target.start > element.start {
+func binarySearchNote(slice []Note, start float64) (int, bool) {
+	return slices.BinarySearchFunc(slice, Note{Start: start}, func(element Note, target Note) int {
+		if target.Start > element.Start {
 			return -1
 		}
-		if target.start < element.start {
+		if target.Start < element.Start {
 			return 1
 		}
 		return 0
 	})
 }
 
-func getFromTo(slice []note, from float64, to float64) []note {
+func getFromTo(slice []Note, from float64, to float64) []Note {
 
 	i, isNoteOnFrom := binarySearchNote(slice, from)
 	j, _ := binarySearchNote(slice, to)
@@ -34,7 +34,7 @@ func getFromTo(slice []note, from float64, to float64) []note {
 		return slice
 	}
 
-	slice[0].start = from
+	slice[0].Start = from
 
 	return slice
 }

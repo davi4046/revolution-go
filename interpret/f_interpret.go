@@ -1,12 +1,14 @@
 package interpret
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"os/exec"
 	"path/filepath"
 	"revolution/component"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -193,7 +195,7 @@ func Interpret(dir string) error {
 
 						var currBar float64
 
-						for k, item := range items {
+						for _, item := range items {
 							ref := item.SelectAttrValue("ref", "none")
 							lengthStr := item.SelectAttrValue("length", "0")
 							offsetStr := item.SelectAttrValue("offset", "0")
@@ -228,7 +230,6 @@ func Interpret(dir string) error {
 								genItem{
 									channel: i,
 									track:   j,
-									index:   k,
 									start:   start,
 									end:     end,
 									offset:  offset,
@@ -426,6 +427,48 @@ func Interpret(dir string) error {
 					fmt.Printf("%s:\n%v\n", id, g.generation)
 				}
 
+				channels := make(map[int]channel)
+
+				for id, genItems := range genItems {
+					if id == "none" {
+						continue
+					}
+					for _, genItem := range genItems {
+
+						notes := getFromTo(generators[id].generation, genItem.offset, genItem.offset+genItem.length)
+						copiedNotes := make([]Note, len(notes))
+						copy(copiedNotes, notes)
+
+						for i := range copiedNotes {
+							copiedNotes[i].Start -= genItem.offset
+							copiedNotes[i].Start += genItem.start
+						}
+
+						ch := genItem.channel
+						tr := genItem.track
+
+						if channels[ch] == nil {
+							channels[ch] = make(channel)
+						}
+
+						channels[ch][tr] = append(channels[ch][tr], copiedNotes...)
+					}
+				}
+
+				for _, ch := range channels {
+					for _, tr := range ch {
+						sort.Slice(tr, func(i, j int) bool {
+							return tr[i].Start < tr[j].Start
+						})
+					}
+				}
+
+				jsonData, err := json.MarshalIndent(channels, "", "  ")
+				if err != nil {
+					log.Fatalln(err)
+				}
+				fmt.Println(string(jsonData))
+
 			case err := <-w.Error:
 				log.Fatalln(err)
 			case <-w.Closed:
@@ -450,3 +493,7 @@ func Interpret(dir string) error {
 
 	return nil
 }
+
+type channel map[int]track
+
+type track []Note
