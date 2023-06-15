@@ -193,8 +193,8 @@ func Interpret(dir string) error {
 
 						var currBar float64
 
-						for _, item := range items {
-							ref := item.SelectAttrValue("ref", "")
+						for k, item := range items {
+							ref := item.SelectAttrValue("ref", "none")
 							lengthStr := item.SelectAttrValue("length", "0")
 							offsetStr := item.SelectAttrValue("offset", "0")
 							addStr := item.SelectAttrValue("add", "0")
@@ -228,6 +228,7 @@ func Interpret(dir string) error {
 								genItem{
 									channel: i,
 									track:   j,
+									index:   k,
 									start:   start,
 									end:     end,
 									offset:  offset,
@@ -311,8 +312,12 @@ func Interpret(dir string) error {
 				newSettings := make(map[string]*generationSettings)
 
 				for _, id := range maps.Keys(genItems) {
-					var start float64
-					var end float64
+					if id == "none" {
+						continue
+					}
+
+					var generationStart float64
+					var generationEnd float64
 
 					for i, genItem := range genItems[id] {
 
@@ -352,24 +357,24 @@ func Interpret(dir string) error {
 						// TODO: Overvej om offset skal være i bars fremfor whole notes
 						// og i såfald i hvilken time signature, det skal interpretes
 
+						genItems[id][i].length = length
+
 						if i == 0 {
-							start = genItem.offset
-							end = genItem.offset + length
+							generationStart = genItem.offset
+							generationEnd = genItem.offset + length
 							continue
 						}
-						if genItem.offset < start {
-							start = genItem.offset
+						if genItem.offset < generationStart {
+							generationStart = genItem.offset
 						}
-						if genItem.offset+length > end {
-							end = genItem.offset + length
+						if genItem.offset+length > generationEnd {
+							generationEnd = genItem.offset + length
 						}
 					}
 
-					// TODO: konvertér start og end fra bars til whole notes ifølge time signatures
-
 					newSettings[id] = &generationSettings{
-						start: start,
-						end:   end,
+						start: generationStart,
+						end:   generationEnd,
 					}
 				}
 
