@@ -3,14 +3,16 @@ package interpret
 type genItem struct {
 	channel int
 	track   int
-	// The start point on the track (in bars).
-	start float64
-	// The end point on the track (in bars).
-	end float64
-	// The offset of the generation (in whole notes).
-	offset float64
-	// The length of the item (in whole notes).
-	length float64
-	add    int
-	sub    int
+	// Start point of the item on the track in bars.
+	barStart float64
+	// End point of the item on the track in bars.
+	barEnd float64
+	// Start point of the item on the track in whole notes.
+	noteStart float64
+	// End point of the item on the track in whole notes.
+	noteEnd float64
+	// Offset of the generation in whole notes.
+	noteOffset float64
+	add        int
+	sub        int
 }

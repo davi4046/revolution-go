@@ -3,8 +3,10 @@ package interpret
 import "golang.org/x/exp/slices"
 
 type Note struct {
-	Start float64 `json:"start"`
-	Value int     `json:"value"`
+	Start   float64
+	Value   int
+	Channel int
+	Track   int
 }
 
 func binarySearchNote(slice []Note, start float64) (int, bool) {

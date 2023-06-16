@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"os/exec"
 	"path/filepath"
 	"revolution/component"
@@ -229,13 +228,13 @@ func Interpret(dir string) error {
 
 							genItems[ref] = append(genItems[ref],
 								genItem{
-									channel: i,
-									track:   j,
-									start:   start,
-									end:     end,
-									offset:  offset,
-									add:     add,
-									sub:     sub,
+									channel:    i,
+									track:      j,
+									barStart:   start,
+									barEnd:     end,
+									noteOffset: offset,
+									add:        add,
+									sub:        sub,
 								},
 							)
 						}
@@ -258,10 +257,10 @@ func Interpret(dir string) error {
 
 				changes := []change{
 					{
-						start: 0,
-						key:   key,
-						time:  time,
-						tempo: tempo,
+						barStart: 0,
+						key:      key,
+						time:     time,
+						tempo:    tempo,
 					},
 				}
 
@@ -274,7 +273,7 @@ func Interpret(dir string) error {
 					if err != nil {
 						log.Fatalln("Invalid Bar:", barStr)
 					}
-					change.start = bar
+					change.barStart = bar
 
 					keyEl := changeEl.FindElement("Key")
 					timeEl := changeEl.FindElement("Time")
@@ -311,6 +310,10 @@ func Interpret(dir string) error {
 					changes = append(changes, change)
 				}
 
+				for i := range changes {
+					changes[i].noteStart = barToWholeNote(changes[i].barStart, changes)
+				}
+
 				fmt.Printf("changes:\n%v\n", changes)
 
 				newSettings := make(map[string]*generationSettings)
@@ -325,51 +328,24 @@ func Interpret(dir string) error {
 
 					for i, genItem := range genItems[id] {
 
-						var length float64
+						wholeNoteStart := barToWholeNote(genItem.barStart, changes)
+						wholeNoteEnd := barToWholeNote(genItem.barEnd, changes)
 
-						// Find the length of the item in whole notes with respect to time signatures
-						for _, change := range changes {
+						length := wholeNoteEnd - wholeNoteStart
 
-							if change.start > genItem.end {
-								// The change starts after the item ends
-								break
-							}
-
-							var end float64
-
-							if len(changes) > i+1 {
-								changeEnd := changes[i+1].start // The start of the next change
-								if genItem.start > changeEnd {
-									// The item starts after the change ends
-									continue
-								}
-								end = math.Min(genItem.end, changeEnd)
-							} else {
-								end = genItem.end
-							}
-
-							start := math.Max(genItem.start, change.start)
-
-							wholeNotesPerBar := change.time.GetWholeNotesPerBar()
-
-							length += (end - start) * wholeNotesPerBar
-						}
-
-						// TODO: Overvej om offset skal være i bars fremfor whole notes
-						// og i såfald i hvilken time signature, det skal interpretes
-
-						genItems[id][i].length = length
+						genItems[id][i].noteStart = wholeNoteStart
+						genItems[id][i].noteEnd = wholeNoteEnd
 
 						if i == 0 {
-							generationStart = genItem.offset
-							generationEnd = genItem.offset + length
+							generationStart = genItem.noteOffset
+							generationEnd = genItem.noteOffset + length
 							continue
 						}
-						if genItem.offset < generationStart {
-							generationStart = genItem.offset
+						if genItem.noteOffset < generationStart {
+							generationStart = genItem.noteOffset
 						}
-						if genItem.offset+length > generationEnd {
-							generationEnd = genItem.offset + length
+						if genItem.noteOffset+length > generationEnd {
+							generationEnd = genItem.noteOffset + length
 						}
 					}
 
@@ -427,7 +403,7 @@ func Interpret(dir string) error {
 					fmt.Printf("%s:\n%v\n", id, g.generation)
 				}
 
-				channels := make(map[int]channel)
+				var allNotes []Note
 
 				for genId, genItems := range genItems {
 					if genId == "none" {
@@ -435,33 +411,25 @@ func Interpret(dir string) error {
 					}
 					for _, genItem := range genItems {
 
-						notes := getFromTo(generators[genId].generation, genItem.offset, genItem.offset+genItem.length)
+						notes := getFromTo(generators[genId].generation, genItem.noteOffset, genItem.noteOffset+genItem.noteEnd-genItem.noteStart)
 						copiedNotes := make([]Note, len(notes))
 						copy(copiedNotes, notes)
 
 						for i := range copiedNotes {
-							copiedNotes[i].Start -= genItem.offset
-							copiedNotes[i].Start += genItem.start
+							copiedNotes[i].Start -= genItem.noteOffset
+							copiedNotes[i].Start += genItem.noteStart
+
+							copiedNotes[i].Channel = genItem.channel
+							copiedNotes[i].Track = genItem.track
 						}
 
-						ch := genItem.channel
-						tr := genItem.track
-
-						if channels[ch] == nil {
-							channels[ch] = make(channel)
-						}
-
-						channels[ch][tr] = append(channels[ch][tr], copiedNotes...)
+						allNotes = append(allNotes, copiedNotes...)
 					}
 				}
 
-				for _, ch := range channels {
-					for _, tr := range ch {
-						sort.Slice(tr, func(i, j int) bool {
-							return tr[i].Start < tr[j].Start
-						})
-					}
-				}
+				sort.Slice(allNotes, func(i int, j int) bool {
+					return allNotes[i].Start < allNotes[j].Start
+				})
 
 				func() {
 					var keys []*revoutil.Key
@@ -470,24 +438,33 @@ func Interpret(dir string) error {
 						keys = append(keys, revoutil.NewKey(change.key.root, change.key.mode))
 					}
 
-					for _, ch := range channels {
-						for _, tr := range ch {
+					var changeIndex int
 
-							var changeIndex int
-
-							for i := range tr {
-								for changeIndex+1 < len(changes) {
-									if tr[i].Start >= changes[changeIndex+1].start {
-										changeIndex++
-									} else {
-										break
-									}
-								}
-								tr[i].Value = keys[changeIndex].DegreeToMIDI(tr[i].Value)
+					for i := range allNotes {
+						for changeIndex+1 < len(changes) {
+							if allNotes[i].Start >= changes[changeIndex+1].noteStart {
+								changeIndex++
+							} else {
+								break
 							}
 						}
+						allNotes[i].Value = keys[changeIndex].DegreeToMIDI(allNotes[i].Value)
 					}
 				}()
+
+				channels := make(map[int]channel)
+
+				for _, note := range allNotes {
+
+					ch := note.Channel
+					tr := note.Track
+
+					if channels[ch] == nil {
+						channels[ch] = make(channel)
+					}
+
+					channels[ch][tr] = append(channels[ch][tr], note)
+				}
 
 				jsonData, err := json.MarshalIndent(channels, "", "  ")
 				if err != nil {
