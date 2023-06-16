@@ -496,7 +496,3 @@ func Interpret(dir string) error {
 
 	return nil
 }
-
-type channel map[int]track
-
-type track []Note
