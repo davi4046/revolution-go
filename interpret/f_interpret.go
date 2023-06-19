@@ -412,6 +412,7 @@ func Interpret(dir string) error {
 					for _, genItem := range genItems {
 
 						notes := getFromTo(generators[genId].generation, genItem.noteOffset, genItem.noteOffset+genItem.noteEnd-genItem.noteStart)
+
 						copiedNotes := make([]Note, len(notes))
 						copy(copiedNotes, notes)
 
@@ -421,6 +422,8 @@ func Interpret(dir string) error {
 
 							copiedNotes[i].Channel = genItem.channel
 							copiedNotes[i].Track = genItem.track
+
+							copiedNotes[i].Value += genItem.add - genItem.sub
 						}
 
 						allNotes = append(allNotes, copiedNotes...)
