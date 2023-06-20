@@ -15,11 +15,7 @@ require (
 	github.com/otiai10/copy v1.11.0
 )
 
-require (
-	github.com/bradfitz/slice v0.0.0-20180809154707-2b758aa73013 // indirect
-	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-)
+require gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect

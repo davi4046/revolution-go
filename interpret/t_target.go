@@ -20,7 +20,7 @@ func stringToTarget(s string) (target, error) {
 	r := regexp.MustCompile(`(ch\(\d+(-\d+)?(,\s*\d+(-\d+)?)*\))\/(tr\(\d+(-\d+)?(,\s*\d+(-\d+)?)*\))`)
 
 	if !r.MatchString(s) {
-		return target, fmt.Errorf("invalid target string:", s)
+		return target, fmt.Errorf("invalid target string: %s", s)
 	}
 
 	s = strings.ReplaceAll(s, " ", "")

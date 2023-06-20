@@ -23,8 +23,6 @@ type modification struct {
 func newModification(path string, args []string, input []revoutil.Note, wg *sync.WaitGroup) modification {
 	defer wg.Done()
 
-	fmt.Println("newModification called")
-
 	var output []revoutil.Note
 
 	command := exec.Command(path, args...)
@@ -48,7 +46,6 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 	var currIndex int
 
 	writeIndex := func() {
-		fmt.Println("writeIndex called:", fmt.Sprintf("%v\n", input[currIndex]))
 		_, err := io.WriteString(stdin, fmt.Sprintf("%v\n", input[currIndex]))
 		if err != nil {
 			log.Fatalln(err)
@@ -59,9 +56,6 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
-		fmt.Println("scan:", line)
-
 		line = strings.Trim(line, "[{}]")
 
 		if line != "" {

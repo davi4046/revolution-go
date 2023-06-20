@@ -1,9 +1,6 @@
 package interpret
 
-import (
-	"github.com/davi4046/revoutil"
-	"golang.org/x/exp/slices"
-)
+import "golang.org/x/exp/slices"
 
 type Note struct {
 	Value int
@@ -45,23 +42,4 @@ func getFromTo(slice []Note, from float64, to float64) []Note {
 	slice[0].Start = from
 
 	return slice
-}
-
-func replace(s []Note, i int, j int, e []revoutil.Note) []Note {
-	var replacement []Note
-
-	currTime := s[i].Start
-
-	for _, note := range e {
-		replacement = append(replacement, Note{
-			Value:    note.Pitch,
-			Start:    currTime,
-			Duration: note.Duration,
-			Channel:  note.Channel,
-			Track:    note.Track,
-		})
-		currTime += note.Duration
-	}
-
-	return slices.Replace(s, i, j, replacement...)
 }

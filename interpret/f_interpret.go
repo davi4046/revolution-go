@@ -30,7 +30,7 @@ func Interpret(dir string) error {
 
 	generations := make(map[string]*generationManager)
 
-	//var modifications []modification
+	var modifications []modification
 
 	go func() {
 		for {
@@ -433,7 +433,7 @@ func Interpret(dir string) error {
 					}
 				}
 
-				sort.Slice(allNotes, func(i int, j int) bool {
+				sort.SliceStable(allNotes, func(i int, j int) bool {
 					return allNotes[i].Start < allNotes[j].Start
 				})
 
@@ -496,114 +496,153 @@ func Interpret(dir string) error {
 					}
 				}
 
-				for _, modDef := range modDefs {
+				func() {
+					var usedModifications []int
 
-					id := modDef.SelectAttrValue("id", "")
+					for _, modDef := range modDefs {
 
-					if modItems[id] == nil {
-						continue
-					}
+						id := modDef.SelectAttrValue("id", "")
 
-					childElements := modDef.ChildElements()
-
-					if len(childElements) == 0 {
-						continue
-					}
-
-					firstChild := childElements[0]
-
-					appinfo := modDefChoice.FindElement(
-						fmt.Sprintf("//xs:element[@ref='%s']/xs:annotation/xs:appinfo", firstChild.Tag),
-					)
-
-					path := appinfo.Text()
-
-					var args []string
-
-					for _, attr := range firstChild.Attr {
-						args = append(args, attr.Value)
-					}
-
-					for _, modItem := range modItems[id] {
-						target, err := stringToTarget(modItem.target)
-						if err != nil {
-							log.Fatalln(err)
+						if modItems[id] == nil {
+							continue
 						}
 
-						wholeNoteStart := barToWholeNote(modItem.barStart, changes)
-						wholeNoteEnd := barToWholeNote(modItem.barEnd, changes)
+						childElements := modDef.ChildElements()
 
-						i, isNoteOnFrom := binarySearchNote(allNotes, wholeNoteStart)
-						j, _ := binarySearchNote(allNotes, wholeNoteEnd)
-
-						if !isNoteOnFrom {
-							i -= 1
+						if len(childElements) == 0 {
+							continue
 						}
 
-						notesInRange := allNotes[i:j]
+						firstChild := childElements[0]
 
-						// Remove notes that are not targeted
-						for i := range notesInRange {
-							if !slices.Contains(target.channels, notesInRange[i].Channel) {
-								slices.Delete(notesInRange, i, i)
-							}
-							if !slices.Contains(target.tracks, notesInRange[i].Track) {
-								slices.Delete(notesInRange, i, i)
-							}
+						appinfo := modDefChoice.FindElement(
+							fmt.Sprintf("//xs:element[@ref='%s']/xs:annotation/xs:appinfo", firstChild.Tag),
+						)
+
+						path := appinfo.Text()
+
+						var args []string
+
+						for _, attr := range firstChild.Attr {
+							args = append(args, attr.Value)
 						}
 
-						sort.SliceStable(notesInRange, func(i, j int) bool {
-							if notesInRange[i].Channel < notesInRange[j].Channel {
-								return true
+						for _, modItem := range modItems[id] {
+							target, err := stringToTarget(modItem.target)
+							if err != nil {
+								log.Fatalln(err)
 							}
-							if notesInRange[i].Channel > notesInRange[j].Channel {
-								return false
-							}
-							if notesInRange[i].Track < notesInRange[j].Track {
-								return true
-							}
-							if notesInRange[i].Track > notesInRange[j].Track {
-								return false
-							}
-							return notesInRange[i].Start < notesInRange[j].Start
-						})
 
-						// Convert notes to revoutil notes
-						var input []revoutil.Note
+							wholeNoteStart := barToWholeNote(modItem.barStart, changes)
+							wholeNoteEnd := barToWholeNote(modItem.barEnd, changes)
 
-						for _, note := range notesInRange {
-							input = append(input, revoutil.Note{
-								Pitch:    note.Value,
-								Duration: note.Duration,
-								Channel:  note.Channel,
-								Track:    note.Track,
-							})
-						}
+							i, isNoteOnFrom := binarySearchNote(allNotes, wholeNoteStart)
+							j, _ := binarySearchNote(allNotes, wholeNoteEnd)
 
-						/*
-							for _, modification := range modifications {
-								if modification.path == path &&
-									slices.Equal(modification.args, args) &&
-									slices.Equal(modification.input, input) {
-									result = modification.output
+							if !isNoteOnFrom {
+								i -= 1
+							}
+
+							notesInRange := make([]Note, len(allNotes[i:j]))
+							copy(notesInRange, allNotes[i:j])
+
+							var targetNotes []Note
+
+							for k := range notesInRange {
+								if !slices.Contains(target.channels, notesInRange[k].Channel) {
+									continue
+								}
+								if !slices.Contains(target.tracks, notesInRange[k].Track) {
+									continue
+								}
+
+								allNotesIndex := i + k - len(targetNotes)
+								allNotes = slices.Delete(allNotes, allNotesIndex, allNotesIndex+1)
+
+								targetNotes = append(targetNotes, notesInRange[k])
+							}
+
+							// Convert notes to revoutil notes
+
+							type myKey struct{ channel, track int }
+
+							currTime := make(map[myKey]float64)
+
+							var input []revoutil.Note
+
+							for _, note := range targetNotes {
+								input = append(input, revoutil.Note{
+									Pitch:    note.Value,
+									Duration: note.Duration,
+									Channel:  note.Channel,
+									Track:    note.Track,
+								})
+
+								if _, ok := currTime[myKey{note.Channel, note.Track}]; !ok {
+									currTime[myKey{note.Channel, note.Track}] = note.Start
 								}
 							}
-						*/
 
-						var wg sync.WaitGroup
+							sort.SliceStable(input, func(i, j int) bool {
+								if input[i].Channel < input[j].Channel {
+									return true
+								}
+								if input[i].Track < input[j].Track {
+									return true
+								}
+								return false
+							})
 
-						wg.Add(1)
+							result := func() []revoutil.Note {
 
-						modification := newModification(path, args, input, &wg)
+								// Try to find a modification with the same path, args, and input.
+								for i, modification := range modifications {
+									if modification.path == path &&
+										slices.Equal(modification.args, args) &&
+										slices.Equal(modification.input, input) {
+										usedModifications = append(usedModifications, i)
+										return modification.output
+									}
+								}
+								var wg sync.WaitGroup
 
-						wg.Wait()
+								wg.Add(1)
 
-						allNotes = replace(allNotes, i, j, modification.output)
+								modification := newModification(path, args, input, &wg)
 
-						fmt.Printf("input: %v\n", modification.input)
-						fmt.Printf("output: %v\n", modification.output)
+								wg.Wait()
+
+								modifications = append(modifications, modification)
+								usedModifications = append(usedModifications, len(modifications)-1)
+
+								return modification.output
+							}()
+
+							for _, note := range result {
+								allNotes = append(allNotes, Note{
+									Value:    note.Pitch,
+									Start:    currTime[myKey{note.Channel, note.Track}],
+									Duration: note.Duration,
+									Channel:  note.Channel,
+									Track:    note.Track,
+								})
+								currTime[myKey{note.Channel, note.Track}] += note.Duration
+							}
+
+							sort.SliceStable(allNotes, func(i int, j int) bool {
+								return allNotes[i].Start < allNotes[j].Start
+							})
+						}
 					}
-				}
+
+					for i := 0; i < len(modifications); i++ {
+						if !slices.Contains(usedModifications, i) {
+							modifications = slices.Delete(modifications, i, i+1)
+						}
+					}
+
+					fmt.Println("saved modifications count:", len(modifications))
+				}()
 
 				channels := make(map[int]channel)
 
