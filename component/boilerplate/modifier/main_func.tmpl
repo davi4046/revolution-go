@@ -41,10 +41,9 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
+			input = strings.Trim(strings.TrimSpace(input), "{}")
 
-			input = strings.TrimSpace(input)
-
-			parts := strings.Split(input, ", ")
+			parts := strings.Split(input, " ")
 
 			pitch, err := strconv.Atoi(parts[0])
 			if err != nil {
@@ -56,12 +55,12 @@ func main() {
 				log.Fatalln(err)
 			}
 
-			channel, err := strconv.ParseUint(parts[2], 10, 64)
+			channel, err := strconv.Atoi(parts[2])
 			if err != nil {
 				log.Fatalln(err)
 			}
 
-			track, err := strconv.ParseUint(parts[3], 10, 64)
+			track, err := strconv.Atoi(parts[3])
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -70,8 +69,8 @@ func main() {
 				revoutil.Note{
 					Pitch:    pitch,
 					Duration: duration,
-					Channel:  uint(channel),
-					Track:    uint(track),
+					Channel:  channel,
+					Track:    track,
 				},
 			))
 		}

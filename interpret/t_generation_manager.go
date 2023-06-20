@@ -137,8 +137,9 @@ func (g *generationManager) generate(startIndex int, length float64, wg *sync.Wa
 		}
 
 		generation = append(generation, Note{
-			Value: degree,
-			Start: start,
+			Value:    degree,
+			Start:    start,
+			Duration: duration,
 		})
 
 		if length > 0 {

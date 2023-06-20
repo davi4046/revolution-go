@@ -28,7 +28,9 @@ func Interpret(dir string) error {
 
 	xsdFilePath := filepath.Join(dir, ".xsd")
 
-	generators := make(map[string]*generationManager)
+	generations := make(map[string]*generationManager)
+
+	//var modifications []modification
 
 	go func() {
 		for {
@@ -191,16 +193,16 @@ func Interpret(dir string) error {
 				for i, channel := range genChannels {
 					tracks := channel.FindElements("Track")
 					for j, track := range tracks {
-						items := track.FindElements("Item")
+						xmlItems := track.FindElements("Item")
 
 						var currBar float64
 
-						for _, item := range items {
-							ref := item.SelectAttrValue("ref", "none")
-							lengthStr := item.SelectAttrValue("length", "0")
-							offsetStr := item.SelectAttrValue("offset", "0")
-							addStr := item.SelectAttrValue("add", "0")
-							subStr := item.SelectAttrValue("sub", "0")
+						for _, xmlItem := range xmlItems {
+							ref := xmlItem.SelectAttrValue("ref", "none")
+							lengthStr := xmlItem.SelectAttrValue("length", "0")
+							offsetStr := xmlItem.SelectAttrValue("offset", "0")
+							addStr := xmlItem.SelectAttrValue("add", "0")
+							subStr := xmlItem.SelectAttrValue("sub", "0")
 
 							length, err := strconv.ParseFloat(lengthStr, 64)
 							if err != nil {
@@ -228,13 +230,13 @@ func Interpret(dir string) error {
 
 							genItems[ref] = append(genItems[ref],
 								genItem{
-									channel:    i,
-									track:      j,
-									barStart:   start,
-									barEnd:     end,
-									noteOffset: offset,
-									add:        add,
-									sub:        sub,
+									channel:  i,
+									track:    j,
+									barStart: start,
+									barEnd:   end,
+									offset:   offset,
+									add:      add,
+									sub:      sub,
 								},
 							)
 						}
@@ -337,15 +339,15 @@ func Interpret(dir string) error {
 						genItems[id][i].noteEnd = wholeNoteEnd
 
 						if i == 0 {
-							generationStart = genItem.noteOffset
-							generationEnd = genItem.noteOffset + length
+							generationStart = genItem.offset
+							generationEnd = genItem.offset + length
 							continue
 						}
-						if genItem.noteOffset < generationStart {
-							generationStart = genItem.noteOffset
+						if genItem.offset < generationStart {
+							generationStart = genItem.offset
 						}
-						if genItem.noteOffset+length > generationEnd {
-							generationEnd = genItem.noteOffset + length
+						if genItem.offset+length > generationEnd {
+							generationEnd = genItem.offset + length
 						}
 					}
 
@@ -358,15 +360,16 @@ func Interpret(dir string) error {
 				for _, genDef := range genDefs {
 					id := genDef.SelectAttrValue("id", "")
 
-					if _, ok := newSettings[id]; !ok {
-						// The GenDef is unused
+					if newSettings[id] == nil {
 						continue
 					}
 
 					childElements := genDef.ChildElements()
+
 					if len(childElements) == 0 {
 						continue
 					}
+
 					firstChild := childElements[0]
 
 					appinfo := genDefChoice.FindElement(
@@ -390,16 +393,16 @@ func Interpret(dir string) error {
 				wg.Add(len(newSettings))
 
 				for id, settings := range newSettings {
-					if _, ok := generators[id]; !ok {
-						generators[id] = &generationManager{}
+					if _, ok := generations[id]; !ok {
+						generations[id] = &generationManager{}
 					}
 					fmt.Println("updating:", id)
-					go generators[id].update(*settings, &wg)
+					go generations[id].update(*settings, &wg)
 				}
 
 				wg.Wait()
 
-				for id, g := range generators {
+				for id, g := range generations {
 					fmt.Printf("%s:\n%v\n", id, g.generation)
 				}
 
@@ -411,13 +414,13 @@ func Interpret(dir string) error {
 					}
 					for _, genItem := range genItems {
 
-						notes := getFromTo(generators[genId].generation, genItem.noteOffset, genItem.noteOffset+genItem.noteEnd-genItem.noteStart)
+						notes := getFromTo(generations[genId].generation, genItem.offset, genItem.offset+genItem.noteEnd-genItem.noteStart)
 
 						copiedNotes := make([]Note, len(notes))
 						copy(copiedNotes, notes)
 
 						for i := range copiedNotes {
-							copiedNotes[i].Start -= genItem.noteOffset
+							copiedNotes[i].Start -= genItem.offset
 							copiedNotes[i].Start += genItem.noteStart
 
 							copiedNotes[i].Channel = genItem.channel
@@ -454,6 +457,153 @@ func Interpret(dir string) error {
 						allNotes[i].Value = keys[changeIndex].DegreeToMIDI(allNotes[i].Value)
 					}
 				}()
+
+				/* Modification */
+
+				modChannels := xmlDoc.FindElements("//Channels/ModChannel")
+
+				modItems := make(map[string][]modItem)
+
+				for _, channel := range modChannels {
+					tracks := channel.FindElements("Track")
+					for _, track := range tracks {
+						xmlItems := track.FindElements("Item")
+
+						var currBar float64
+
+						for _, xmlItem := range xmlItems {
+							ref := xmlItem.SelectAttrValue("ref", "none")
+							lengthStr := xmlItem.SelectAttrValue("length", "0")
+							targetStr := xmlItem.SelectAttrValue("target", "")
+
+							length, err := strconv.ParseFloat(lengthStr, 64)
+							if err != nil {
+								log.Fatalln(err)
+							}
+
+							start := currBar
+							currBar += length
+							end := currBar
+
+							modItems[ref] = append(modItems[ref],
+								modItem{
+									barStart: start,
+									barEnd:   end,
+									target:   targetStr,
+								},
+							)
+						}
+					}
+				}
+
+				for _, modDef := range modDefs {
+
+					id := modDef.SelectAttrValue("id", "")
+
+					if modItems[id] == nil {
+						continue
+					}
+
+					childElements := modDef.ChildElements()
+
+					if len(childElements) == 0 {
+						continue
+					}
+
+					firstChild := childElements[0]
+
+					appinfo := modDefChoice.FindElement(
+						fmt.Sprintf("//xs:element[@ref='%s']/xs:annotation/xs:appinfo", firstChild.Tag),
+					)
+
+					path := appinfo.Text()
+
+					var args []string
+
+					for _, attr := range firstChild.Attr {
+						args = append(args, attr.Value)
+					}
+
+					for _, modItem := range modItems[id] {
+						target, err := stringToTarget(modItem.target)
+						if err != nil {
+							log.Fatalln(err)
+						}
+
+						wholeNoteStart := barToWholeNote(modItem.barStart, changes)
+						wholeNoteEnd := barToWholeNote(modItem.barEnd, changes)
+
+						i, isNoteOnFrom := binarySearchNote(allNotes, wholeNoteStart)
+						j, _ := binarySearchNote(allNotes, wholeNoteEnd)
+
+						if !isNoteOnFrom {
+							i -= 1
+						}
+
+						notesInRange := allNotes[i:j]
+
+						// Remove notes that are not targeted
+						for i := range notesInRange {
+							if !slices.Contains(target.channels, notesInRange[i].Channel) {
+								slices.Delete(notesInRange, i, i)
+							}
+							if !slices.Contains(target.tracks, notesInRange[i].Track) {
+								slices.Delete(notesInRange, i, i)
+							}
+						}
+
+						sort.SliceStable(notesInRange, func(i, j int) bool {
+							if notesInRange[i].Channel < notesInRange[j].Channel {
+								return true
+							}
+							if notesInRange[i].Channel > notesInRange[j].Channel {
+								return false
+							}
+							if notesInRange[i].Track < notesInRange[j].Track {
+								return true
+							}
+							if notesInRange[i].Track > notesInRange[j].Track {
+								return false
+							}
+							return notesInRange[i].Start < notesInRange[j].Start
+						})
+
+						// Convert notes to revoutil notes
+						var input []revoutil.Note
+
+						for _, note := range notesInRange {
+							input = append(input, revoutil.Note{
+								Pitch:    note.Value,
+								Duration: note.Duration,
+								Channel:  note.Channel,
+								Track:    note.Track,
+							})
+						}
+
+						/*
+							for _, modification := range modifications {
+								if modification.path == path &&
+									slices.Equal(modification.args, args) &&
+									slices.Equal(modification.input, input) {
+									result = modification.output
+								}
+							}
+						*/
+
+						var wg sync.WaitGroup
+
+						wg.Add(1)
+
+						modification := newModification(path, args, input, &wg)
+
+						wg.Wait()
+
+						allNotes = replace(allNotes, i, j, modification.output)
+
+						fmt.Printf("input: %v\n", modification.input)
+						fmt.Printf("output: %v\n", modification.output)
+					}
+				}
 
 				channels := make(map[int]channel)
 
