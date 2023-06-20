@@ -43,16 +43,18 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 
 	scanner := bufio.NewScanner(stdout)
 
+	var isFinishing bool
 	var currIndex int
 
-	writeIndex := func() {
+	sendNote := func() {
 		_, err := io.WriteString(stdin, fmt.Sprintf("%v\n", input[currIndex]))
 		if err != nil {
 			log.Fatalln(err)
 		}
+		currIndex++
 	}
 
-	writeIndex()
+	sendNote()
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -93,13 +95,18 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 			}
 		}
 
-		currIndex++
-
-		if currIndex == len(input) {
+		if isFinishing {
+			fmt.Println("breaking")
 			break
 		}
 
-		writeIndex()
+		if currIndex < len(input) {
+			sendNote()
+		} else {
+			io.WriteString(stdin, "finish\n")
+			isFinishing = true
+			fmt.Println("finish sent")
+		}
 	}
 	return modification{
 		path:   path,

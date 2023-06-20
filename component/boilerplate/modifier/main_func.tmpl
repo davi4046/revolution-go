@@ -41,7 +41,15 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			input = strings.Trim(strings.TrimSpace(input), "{}")
+
+			input = strings.TrimSpace(input)
+
+			if input == "finish" {
+				fmt.Println(modifier.finish())
+				return
+			}
+
+			input = strings.Trim(input, "{}")
 
 			parts := strings.Split(input, " ")
 
