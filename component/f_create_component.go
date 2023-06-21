@@ -10,17 +10,10 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-//go:embed boilerplate/generator/revocomp.go
-//go:embed boilerplate/generator/revocomp.yaml
-//go:embed boilerplate/generator/main_func.tmpl
-//go:embed boilerplate/modifier/revocomp.go
-//go:embed boilerplate/modifier/revocomp.yaml
-//go:embed boilerplate/modifier/main_func.tmpl
+//go:embed boilerplate/*
 var files embed.FS
 
-// createComponent creates a new component in the current working directory
-// with the specified name and component type.
-func createComponent(name, compType string) error {
+func CreateComponent(name, kind string) error {
 
 	// Get working directory
 	wd, err := os.Getwd()
@@ -28,22 +21,18 @@ func createComponent(name, compType string) error {
 		return err
 	}
 
-	if compType != "generator" && compType != "modifier" {
-		return fmt.Errorf("'%s' is not a valid component type", compType)
-	}
-
 	snakeCaseName := strcase.ToSnake(name)
 
-	compDir := filepath.Join(wd, strcase.ToSnake(name))
+	dir := filepath.Join(wd, strcase.ToSnake(name))
 
-	if err := os.Mkdir(compDir, 0777); err != nil {
+	if err := os.Mkdir(dir, 0777); err != nil {
 		return err
 	}
 
-	goFilePath := filepath.Join(compDir, "revocomp.go")
-	yamlFilePath := filepath.Join(compDir, "revocomp.yaml")
+	goFilePath := filepath.Join(dir, "revocomp.go")
+	yamlFilePath := filepath.Join(dir, "revocomp.yaml")
 
-	switch compType {
+	switch kind {
 	case "generator":
 
 		goData, err := files.ReadFile("boilerplate/generator/revocomp.go")
@@ -82,9 +71,11 @@ func createComponent(name, compType string) error {
 		if err := os.WriteFile(yamlFilePath, yamlData, 0777); err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("invalid component kind: %s", kind)
 	}
 
-	if err := os.Chdir(compDir); err != nil {
+	if err := os.Chdir(dir); err != nil {
 		return err
 	}
 

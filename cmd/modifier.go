@@ -23,7 +23,7 @@ to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if err := component.CreateModifier(args[0]); err != nil {
+		if err := component.CreateComponent(args[0], "modifier"); err != nil {
 			log.Fatalln(err)
 		}
 	},
