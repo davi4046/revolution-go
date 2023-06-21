@@ -1,6 +1,7 @@
 package component
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"go/parser"
@@ -14,7 +15,7 @@ import (
 	"text/template"
 	"time"
 
-	_ "embed"
+	"go/format"
 
 	"github.com/beevik/etree"
 	"github.com/iancoleman/strcase"
@@ -38,9 +39,7 @@ func CompileComponent(outDir string) error {
 
 	copy.Copy(wd, tempDir)
 
-	//defer os.RemoveAll(tempDir)
-
-	fmt.Println(tempDirName)
+	defer os.RemoveAll(tempDir)
 
 	// Read component info
 	xsdData, _ := os.ReadFile("revocomp.yaml")
@@ -59,15 +58,21 @@ func CompileComponent(outDir string) error {
 		funcName = "NewModifier"
 	}
 
-	funcDecl, _ := astutil.FindFuncDeclByName(astFile, funcName)
+	funcDecl := astutil.FindFuncDeclByName(astFile, funcName)
+	astutil.SortParameters(funcDecl)
 	params := funcDecl.Type.Params.List
-
-	// Create XSD file
 
 	attributes, err := generateAttributesFromFields(fset, astFile, params)
 	if err != nil {
 		return err
 	}
+
+	var buf bytes.Buffer
+	if err := format.Node(&buf, fset, astFile); err != nil {
+		panic(err)
+	}
+
+	os.WriteFile(filepath.Join(tempDir, "revocomp.go"), buf.Bytes(), 0777)
 
 	element := etree.NewElement("xs:element")
 	elementName := info.Name + "-" + info.Version
@@ -171,10 +176,10 @@ func CompileComponent(outDir string) error {
 	}
 
 	src := filepath.Join(tempDir, buildName)
-	destName := strcase.ToCamel(info.Name) + "@" + info.Version + ".revocomp"
-	dest := filepath.Join(outDir, destName)
+	dstName := strcase.ToCamel(info.Name) + "@" + info.Version + ".revocomp"
+	dst := filepath.Join(outDir, dstName)
 
-	if err := copy.Copy(src, dest); err != nil {
+	if err := copy.Copy(src, dst); err != nil {
 		return err
 	}
 

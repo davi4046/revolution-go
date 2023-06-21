@@ -378,11 +378,21 @@ func Interpret(dir string) error {
 
 					path := appinfo.Text()
 
+					attributes := firstChild.Attr
+
+					sort.Slice(attributes, func(i, j int) bool {
+						return attributes[i].Key < attributes[j].Key
+					})
+
 					var args []string
 
-					for _, attr := range firstChild.Attr {
+					for _, attr := range attributes {
 						args = append(args, attr.Value)
 					}
+
+					sort.Slice(args, func(i, j int) bool {
+						return firstChild.Attr[i].Key < firstChild.Attr[j].Key
+					})
 
 					newSettings[id].path = path
 					newSettings[id].args = args
@@ -521,9 +531,15 @@ func Interpret(dir string) error {
 
 						path := appinfo.Text()
 
+						attributes := firstChild.Attr
+
+						sort.Slice(attributes, func(i, j int) bool {
+							return attributes[i].Key < attributes[j].Key
+						})
+
 						var args []string
 
-						for _, attr := range firstChild.Attr {
+						for _, attr := range attributes {
 							args = append(args, attr.Value)
 						}
 

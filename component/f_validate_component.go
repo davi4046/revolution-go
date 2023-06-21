@@ -49,7 +49,7 @@ func validateComponent(dir string) error {
 	switch info.Type {
 	case "generator":
 		// Find and validate 'generator' type.
-		if decl, ok := astutil.FindTypeSpecByName(astFile, "Generator"); ok {
+		if decl := astutil.FindTypeSpecByName(astFile, "Generator"); decl != nil {
 			if _, ok := decl.Type.(*ast.StructType); !ok {
 				return errors.New("type 'Generator' must be a struct")
 			}
@@ -57,7 +57,7 @@ func validateComponent(dir string) error {
 			return errors.New("type 'Generator' is missing from revocomp.go")
 		}
 		// Find and validate 'newGenerator' function.
-		if decl, ok := astutil.FindFuncDeclByName(astFile, "NewGenerator"); ok {
+		if decl := astutil.FindFuncDeclByName(astFile, "NewGenerator"); decl != nil {
 			for _, param := range astutil.GetSimpleFields(decl.Type.Params.List) {
 				if !slices.Contains(maps.Keys(typeMap), param.Type) {
 					return fmt.Errorf("parameter %s of function 'NewGenerator' is an unsupported type", param.Name)
@@ -77,7 +77,7 @@ func validateComponent(dir string) error {
 			return errors.New("function 'NewGenerator' is missing from revocomp.go")
 		}
 		// Find and validate 'generate' function.
-		if decl, ok := astutil.FindFuncDeclByName(astFile, "Generate"); ok {
+		if decl := astutil.FindFuncDeclByName(astFile, "Generate"); decl != nil {
 			if !slices.Equal(
 				astutil.GetSimpleFields(decl.Type.Params.List),
 				[]astutil.SimpleField{{
@@ -105,7 +105,7 @@ func validateComponent(dir string) error {
 		}
 	case "modifier":
 		// Find and validate 'modifier' type.
-		if decl, ok := astutil.FindTypeSpecByName(astFile, "Modifier"); ok {
+		if decl := astutil.FindTypeSpecByName(astFile, "Modifier"); decl != nil {
 			if _, ok := decl.Type.(*ast.StructType); !ok {
 				return errors.New("type 'Modifier' must be a struct")
 			}
@@ -113,7 +113,7 @@ func validateComponent(dir string) error {
 			return errors.New("type 'Modifier' is missing from revocomp.go")
 		}
 		// Find and validate 'newModifier' function.
-		if decl, ok := astutil.FindFuncDeclByName(astFile, "NewModifier"); ok {
+		if decl := astutil.FindFuncDeclByName(astFile, "NewModifier"); decl != nil {
 			for _, param := range astutil.GetSimpleFields(decl.Type.Params.List) {
 				baseType := strings.TrimPrefix(param.Type, "[]")
 				if !slices.Contains(maps.Keys(typeMap), baseType) {
@@ -134,7 +134,7 @@ func validateComponent(dir string) error {
 			return errors.New("function 'NewModifier' is missing from revocomp.go")
 		}
 		// Find and validate 'modify' function.
-		if decl, ok := astutil.FindFuncDeclByName(astFile, "Modify"); ok {
+		if decl := astutil.FindFuncDeclByName(astFile, "Modify"); decl != nil {
 
 			fmt.Println(astutil.GetSimpleFields(decl.Type.Params.List))
 
