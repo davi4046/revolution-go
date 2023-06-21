@@ -176,7 +176,7 @@ func CompileComponent(outDir string) error {
 	}
 
 	src := filepath.Join(tempDir, buildName)
-	dstName := strcase.ToCamel(info.Name) + "@" + info.Version + ".revocomp"
+	dstName := strcase.ToCamel(info.Name) + "@" + strings.ReplaceAll(info.Version, ".", "-") + ".revocomp"
 	dst := filepath.Join(outDir, dstName)
 
 	if err := copy.Copy(src, dst); err != nil {
