@@ -214,19 +214,11 @@
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="mode">
-    <xs:restriction base="xs:string">
-      <xs:enumeration value="Aeolian"/>
-      <xs:enumeration value="Chromatic"/>
-      <xs:enumeration value="Dorian"/>
-      <xs:enumeration value="Ionian"/>
-      <xs:enumeration value="Locrian"/>
-      <xs:enumeration value="Lydian"/>
-      <xs:enumeration value="Major"/>
-      <xs:enumeration value="Minor"/>
-      <xs:enumeration value="Mixolydian"/>
-      <xs:enumeration value="Phrygian"/>
-    </xs:restriction>
-  </xs:simpleType>
+		<xs:restriction base="xs:integer">
+			<xs:pattern value="\d*[13579]"></xs:pattern>
+			<xs:maxInclusive value="4095"></xs:maxInclusive>
+		</xs:restriction>
+	</xs:simpleType>
   <xs:simpleType name="pitchclass">
     <xs:restriction base="xs:string">
       <xs:enumeration value="A"/>

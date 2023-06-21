@@ -2,6 +2,7 @@ package interpret
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -9,13 +10,15 @@ import (
 	"github.com/davi4046/revoutil"
 )
 
-func extractKey(el *etree.Element) key {
-	root := el.SelectAttrValue("root", "")
-	mode := el.SelectAttrValue("mode", "")
-	return key{
-		root: root,
-		mode: mode,
+func extractKey(el *etree.Element) revoutil.LightKey {
+
+	pitch := revoutil.PitchClassMap[el.SelectAttrValue("root", "")]
+
+	scale, err := strconv.Atoi(el.SelectAttrValue("mode", ""))
+	if err != nil {
+		log.Fatalln(err)
 	}
+	return revoutil.NewLightKey(pitch, scale)
 }
 
 func extractTime(el *etree.Element) (revoutil.Time, error) {

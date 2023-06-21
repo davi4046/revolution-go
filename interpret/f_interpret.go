@@ -38,6 +38,8 @@ func Interpret(dir string) error {
 			case event := <-w.Event:
 				fmt.Println(event) // Print the event's info.
 
+				start := time.Now()
+
 				wantedComponents := make(map[string]string)
 
 				xmlDoc := etree.NewDocument()
@@ -243,78 +245,81 @@ func Interpret(dir string) error {
 					}
 				}
 
-				keyEl := xmlDoc.FindElement("//Key")
-				timeEl := xmlDoc.FindElement("//Time")
-				tempoEl := xmlDoc.FindElement("//Tempo")
+				var changes []change
 
-				key := extractKey(keyEl)
-				time, err := extractTime(timeEl)
-				if err != nil {
-					log.Fatalln("Invalid Time:", timeEl.Text())
-				}
-				tempo, err := extractTempo(tempoEl)
-				if err != nil {
-					log.Fatalln("Invalid Tempo:", tempoEl.Text())
-				}
+				func() {
+					keyEl := xmlDoc.FindElement("//Key")
+					timeEl := xmlDoc.FindElement("//Time")
+					tempoEl := xmlDoc.FindElement("//Tempo")
 
-				changes := []change{
-					{
-						barStart: 0,
-						key:      key,
-						time:     time,
-						tempo:    tempo,
-					},
-				}
-
-				for _, changeEl := range xmlDoc.FindElements("//Changes/Change") {
-
-					var change change
-
-					barStr := changeEl.SelectAttrValue("bar", "")
-					bar, err := strconv.ParseFloat(barStr, 64)
+					key := extractKey(keyEl)
+					time, err := extractTime(timeEl)
 					if err != nil {
-						log.Fatalln("Invalid Bar:", barStr)
+						log.Fatalln("Invalid Time:", timeEl.Text())
 					}
-					change.barStart = bar
-
-					keyEl := changeEl.FindElement("Key")
-					timeEl := changeEl.FindElement("Time")
-					tempoEl := changeEl.FindElement("Tempo")
-
-					if keyEl == nil {
-						// Key remains the same
-						change.key = changes[len(changes)-1].key
-					} else {
-						change.key = extractKey(keyEl)
+					tempo, err := extractTempo(tempoEl)
+					if err != nil {
+						log.Fatalln("Invalid Tempo:", tempoEl.Text())
 					}
-					if timeEl == nil {
-						// Time remains the same
-						change.time = changes[len(changes)-1].time
-					} else {
-						time, err := extractTime(timeEl)
+
+					changes = []change{
+						{
+							barStart: 0,
+							key:      key,
+							time:     time,
+							tempo:    tempo,
+						},
+					}
+
+					for _, changeEl := range xmlDoc.FindElements("//Changes/Change") {
+
+						var change change
+
+						barStr := changeEl.SelectAttrValue("bar", "")
+						bar, err := strconv.ParseFloat(barStr, 64)
 						if err != nil {
-							log.Fatalln("Invalid Time:", timeEl.Text())
+							log.Fatalln("Invalid Bar:", barStr)
 						}
-						change.time = time
-					}
+						change.barStart = bar
 
-					if tempoEl == nil {
-						// Tempo remains the same
-						change.tempo = changes[len(changes)-1].tempo
-					} else {
-						tempo, err := extractTempo(tempoEl)
-						if err != nil {
-							log.Fatalln("Invalid Tempo:", tempoEl.Text())
+						keyEl := changeEl.FindElement("Key")
+						timeEl := changeEl.FindElement("Time")
+						tempoEl := changeEl.FindElement("Tempo")
+
+						if keyEl == nil {
+							// Key remains the same
+							change.key = changes[len(changes)-1].key
+						} else {
+							change.key = extractKey(keyEl)
 						}
-						change.tempo = tempo
+						if timeEl == nil {
+							// Time remains the same
+							change.time = changes[len(changes)-1].time
+						} else {
+							time, err := extractTime(timeEl)
+							if err != nil {
+								log.Fatalln("Invalid Time:", timeEl.Text())
+							}
+							change.time = time
+						}
+
+						if tempoEl == nil {
+							// Tempo remains the same
+							change.tempo = changes[len(changes)-1].tempo
+						} else {
+							tempo, err := extractTempo(tempoEl)
+							if err != nil {
+								log.Fatalln("Invalid Tempo:", tempoEl.Text())
+							}
+							change.tempo = tempo
+						}
+
+						changes = append(changes, change)
 					}
-
-					changes = append(changes, change)
-				}
-
-				for i := range changes {
-					changes[i].noteStart = barToWholeNote(changes[i].barStart, changes)
-				}
+					for i := range changes {
+						changes[i].noteStart = barToWholeNote(changes[i].barStart, changes)
+					}
+				}()
 
 				fmt.Printf("changes:\n%v\n", changes)
 
@@ -448,12 +453,6 @@ func Interpret(dir string) error {
 				})
 
 				func() {
-					var keys []*revoutil.Key
-
-					for _, change := range changes {
-						keys = append(keys, revoutil.NewKey(change.key.root, change.key.mode))
-					}
-
 					var changeIndex int
 
 					for i := range allNotes {
@@ -464,7 +463,7 @@ func Interpret(dir string) error {
 								break
 							}
 						}
-						allNotes[i].Value = keys[changeIndex].DegreeToMIDI(allNotes[i].Value)
+						allNotes[i].Value = changes[changeIndex].key.DegreeToMIDI(allNotes[i].Value)
 					}
 				}()
 
@@ -679,6 +678,10 @@ func Interpret(dir string) error {
 					log.Fatalln(err)
 				}
 				fmt.Println(string(jsonData))
+
+				end := time.Now()
+
+				fmt.Println("execution time:", end.Sub(start))
 
 			case err := <-w.Error:
 				log.Fatalln(err)
