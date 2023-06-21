@@ -30,7 +30,7 @@ func main() {
 
 		{{.Conversions}}
 
-		generator := newGenerator({{.Args}})
+		generator := NewGenerator({{.Args}})
 
 		reader := bufio.NewReader(os.Stdin)
 
@@ -47,7 +47,7 @@ func main() {
 				log.Fatalln(err)
 			}
 
-			fmt.Println(generator.generate(index))
+			fmt.Println(generator.Generate(index))
 		}
 	}
 }

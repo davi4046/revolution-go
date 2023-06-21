@@ -32,7 +32,7 @@ func main() {
 
 		{{.Conversions}}
 
-		modifier := newModifier({{.Args}})
+		modifier := NewModifier({{.Args}})
 
 		reader := bufio.NewReader(os.Stdin)
 
@@ -45,7 +45,7 @@ func main() {
 			input = strings.TrimSpace(input)
 
 			if input == "finish" {
-				fmt.Println(modifier.finish())
+				fmt.Println(modifier.Finish())
 				return
 			}
 
@@ -73,7 +73,7 @@ func main() {
 				log.Fatalln(err)
 			}
 
-			fmt.Println(modifier.modify(
+			fmt.Println(modifier.Modify(
 				revoutil.Note{
 					Pitch:    pitch,
 					Duration: duration,

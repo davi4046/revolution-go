@@ -2,7 +2,7 @@ package main
 
 import "math/rand"
 
-type generator struct {
+type Generator struct {
 	seed   int64
 	minDur float64
 	maxDur float64
@@ -10,7 +10,7 @@ type generator struct {
 	maxDeg int
 }
 
-func newGenerator(
+func NewGenerator(
 
 	/************* Parameters **************
 
@@ -26,7 +26,7 @@ func newGenerator(
 	minDeg int,
 	maxDeg int,
 
-) generator {
+) Generator {
 
 	/*********** Initialization ************
 
@@ -40,7 +40,7 @@ func newGenerator(
 
 	***************************************/
 
-	return generator{
+	return Generator{
 		seed:   seed,
 		minDur: minDur,
 		maxDur: maxDur,
@@ -49,7 +49,7 @@ func newGenerator(
 	}
 }
 
-func (g generator) generate(i int) (degree int, duration float64) {
+func (g Generator) Generate(i int) (degree int, duration float64) {
 
 	/************* Generation **************
 
@@ -66,10 +66,10 @@ func (g generator) generate(i int) (degree int, duration float64) {
 	r := rand.New(rand.NewSource(seed))
 
 	// Random integer value between minDeg and maxDeg.
-	var deg = r.Intn(g.maxDeg-g.minDeg) + g.minDeg
+	degree = r.Intn(g.maxDeg-g.minDeg) + g.minDeg
 
 	// Random float value between minDur and maxDur.
-	var dur = r.Float64()*(g.maxDur-g.minDur) + g.minDur
+	duration = r.Float64()*(g.maxDur-g.minDur) + g.minDur
 
-	return deg, dur
+	return
 }

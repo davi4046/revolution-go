@@ -2,12 +2,12 @@ package main
 
 import "github.com/davi4046/revoutil"
 
-type modifier struct{}
+type Modifier struct{}
 
-func newModifier() modifier {
-	return modifier{}
+func NewModifier() Modifier {
+	return Modifier{}
 }
 
-func (m modifier) modify(note revoutil.Note) []revoutil.Note {
+func (m Modifier) Modify(note revoutil.Note) []revoutil.Note {
 	return []revoutil.Note{note}
 }
