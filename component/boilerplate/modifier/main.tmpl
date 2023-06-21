@@ -44,10 +44,7 @@ func main() {
 
 			input = strings.TrimSpace(input)
 
-			if input == "finish" {
-				fmt.Println(modifier.Finish())
-				return
-			}
+			if input == "finish" { fmt.Println(modifier.Finish()); return }
 
 			input = strings.Trim(input, "{}")
 

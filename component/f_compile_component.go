@@ -134,25 +134,29 @@ func CompileComponent(outDir string) error {
 
 	mainTmpl := template.New("mainTmpl")
 
+	var tmplData []byte
+
 	switch info.Type {
 	case "generator":
-		tmplData, err := files.ReadFile("boilerplate/generator/main.tmpl")
+		tmplData, err = files.ReadFile("boilerplate/generator/main.tmpl")
 		if err != nil {
-			return err
-		}
-
-		if _, err := mainTmpl.Parse(string(tmplData)); err != nil {
 			return err
 		}
 	case "modifier":
-		tmplData, err := files.ReadFile("boilerplate/modifier/main.tmpl")
+		tmplData, err = files.ReadFile("boilerplate/modifier/main.tmpl")
 		if err != nil {
 			return err
 		}
-
-		if _, err := mainTmpl.Parse(string(tmplData)); err != nil {
-			return err
+		if astutil.FindFuncDeclByName(astFile, "Finish") == nil {
+			// If there is no Finish function, we remove the boilerplate for executing it.
+			tmplData = []byte(strings.ReplaceAll(
+				string(tmplData), `if input == "finish" { fmt.Println(modifier.Finish()); return }`, ``),
+			)
 		}
+	}
+
+	if _, err := mainTmpl.Parse(string(tmplData)); err != nil {
+		return err
 	}
 
 	var builder strings.Builder
