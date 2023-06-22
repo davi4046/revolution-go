@@ -21,7 +21,7 @@ func extractKey(el *etree.Element) revoutil.LightKey {
 	return revoutil.NewLightKey(pitch, scale)
 }
 
-func extractTime(el *etree.Element) (revoutil.Time, error) {
+func extractMeter(el *etree.Element) (revoutil.Time, error) {
 	numeratorStr, denominatorStr, ok := strings.Cut(el.Text(), "/")
 	if !ok {
 		return revoutil.Time{}, fmt.Errorf("'/' is missing")
@@ -43,10 +43,10 @@ func extractTime(el *etree.Element) (revoutil.Time, error) {
 	}, nil
 }
 
-func extractTempo(el *etree.Element) (uint8, error) {
-	tempo, err := strconv.ParseUint(el.Text(), 10, 8)
+func extractTempo(el *etree.Element) (float64, error) {
+	tempo, err := strconv.ParseFloat(el.Text(), 64)
 	if err != nil {
 		return 0, err
 	}
-	return uint8(tempo), nil
+	return tempo, nil
 }

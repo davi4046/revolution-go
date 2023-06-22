@@ -22,7 +22,7 @@ func barToWholeNote(bar float64, changes []change) float64 {
 			end = bar
 		}
 
-		wholeNotesPerBar := change.time.GetWholeNotesPerBar()
+		wholeNotesPerBar := change.meter.GetWholeNotesPerBar()
 
 		wholeNote += (end - change.barStart) * wholeNotesPerBar
 	}

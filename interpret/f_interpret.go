@@ -1,7 +1,7 @@
 package interpret
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"log"
 	"os/exec"
@@ -16,6 +16,7 @@ import (
 	"github.com/beevik/etree"
 	"github.com/davi4046/revoutil"
 	"github.com/radovskyb/watcher"
+	"gitlab.com/gomidi/midi/v2/smf"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -249,13 +250,13 @@ func Interpret(dir string) error {
 
 				func() {
 					keyEl := xmlDoc.FindElement("//Key")
-					timeEl := xmlDoc.FindElement("//Time")
+					meterEl := xmlDoc.FindElement("//Time")
 					tempoEl := xmlDoc.FindElement("//Tempo")
 
 					key := extractKey(keyEl)
-					time, err := extractTime(timeEl)
+					meter, err := extractMeter(meterEl)
 					if err != nil {
-						log.Fatalln("Invalid Time:", timeEl.Text())
+						log.Fatalln("Invalid Time:", meterEl.Text())
 					}
 					tempo, err := extractTempo(tempoEl)
 					if err != nil {
@@ -266,7 +267,7 @@ func Interpret(dir string) error {
 						{
 							barStart: 0,
 							key:      key,
-							time:     time,
+							meter:    meter,
 							tempo:    tempo,
 						},
 					}
@@ -283,7 +284,7 @@ func Interpret(dir string) error {
 						change.barStart = bar
 
 						keyEl := changeEl.FindElement("Key")
-						timeEl := changeEl.FindElement("Time")
+						meterEl := changeEl.FindElement("Time")
 						tempoEl := changeEl.FindElement("Tempo")
 
 						if keyEl == nil {
@@ -292,15 +293,15 @@ func Interpret(dir string) error {
 						} else {
 							change.key = extractKey(keyEl)
 						}
-						if timeEl == nil {
-							// Time remains the same
-							change.time = changes[len(changes)-1].time
+						if meterEl == nil {
+							// Meter remains the same
+							change.meter = changes[len(changes)-1].meter
 						} else {
-							time, err := extractTime(timeEl)
+							meter, err := extractMeter(meterEl)
 							if err != nil {
-								log.Fatalln("Invalid Time:", timeEl.Text())
+								log.Fatalln("Invalid Time:", meterEl.Text())
 							}
-							change.time = time
+							change.meter = meter
 						}
 
 						if tempoEl == nil {

@@ -6,6 +6,6 @@ type change struct {
 	barStart  float64
 	noteStart float64
 	key       revoutil.LightKey
-	time      revoutil.Time
-	tempo     uint8
+	meter     revoutil.Time
+	tempo     float64
 }
