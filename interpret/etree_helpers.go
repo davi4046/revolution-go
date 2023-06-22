@@ -21,23 +21,23 @@ func extractKey(el *etree.Element) revoutil.LightKey {
 	return revoutil.NewLightKey(pitch, scale)
 }
 
-func extractMeter(el *etree.Element) (revoutil.Time, error) {
+func extractMeter(el *etree.Element) (revoutil.Meter, error) {
 	numeratorStr, denominatorStr, ok := strings.Cut(el.Text(), "/")
 	if !ok {
-		return revoutil.Time{}, fmt.Errorf("'/' is missing")
+		return revoutil.Meter{}, fmt.Errorf("'/' is missing")
 	}
 
 	numerator, err := strconv.ParseUint(numeratorStr, 10, 8)
 	if err != nil {
-		return revoutil.Time{}, err
+		return revoutil.Meter{}, err
 	}
 
 	denominator, err := strconv.ParseUint(denominatorStr, 10, 8)
 	if err != nil {
-		return revoutil.Time{}, err
+		return revoutil.Meter{}, err
 	}
 
-	return revoutil.Time{
+	return revoutil.Meter{
 		Numerator:   uint8(numerator),
 		Denominator: uint8(denominator),
 	}, nil

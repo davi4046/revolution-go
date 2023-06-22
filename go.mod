@@ -11,7 +11,7 @@ require (
 
 require (
 	github.com/beevik/etree v1.2.0
-	github.com/davi4046/revoutil v0.0.0-20230621130416-e96435bde257
+	github.com/davi4046/revoutil v0.0.0-20230622082417-21c7e5986a29
 	github.com/otiai10/copy v1.11.0
 )
 
