@@ -698,18 +698,14 @@ func Interpret(dir string) error {
 
 				func() {
 
-					channels := make(map[int]channel)
+					tracks := make(map[myKey][]Note)
 
 					for _, note := range allNotes {
-
-						ch := note.Channel
-						tr := note.Track
-
-						if channels[ch] == nil {
-							channels[ch] = make(channel)
+						key := myKey{
+							channel: note.Channel,
+							track:   note.Track,
 						}
-
-						channels[ch][tr] = append(channels[ch][tr], note)
+						tracks[key] = append(tracks[key], note)
 					}
 
 					s := smf.New()
@@ -741,6 +737,7 @@ func Interpret(dir string) error {
 						}
 
 						changesTrack.Close(0)
+
 						if err := s.Add(changesTrack); err != nil {
 							log.Fatalln(err)
 						}
@@ -877,37 +874,46 @@ func Interpret(dir string) error {
 						"Gunshot":                 127,
 					}
 
-					for i, ch := range channels {
+					keys := maps.Keys(tracks)
 
-						instrument := genChannels[i].SelectAttrValue("instrument", "Bright Acoustic Piano")
+					sort.Slice(keys, func(i, j int) bool {
+						if keys[i].channel < keys[j].channel {
+							return true
+						}
+						if keys[i].channel > keys[j].channel {
+							return false
+						}
+						return keys[i].track < keys[j].track
+					})
+
+					for _, key := range keys {
+
+						instrument := genChannels[key.channel].SelectAttrValue("instrument", "Bright Acoustic Piano")
 						program := instrumentMap[instrument]
 
-						for _, tr := range ch {
+						track := smf.Track{}
 
-							track := smf.Track{}
+						track.Add(0, midi.ProgramChange(uint8(key.channel), program))
 
-							track.Add(0, midi.ProgramChange(uint8(i), program))
+						var pause float64
 
-							var pause float64
+						for _, note := range tracks[key] {
 
-							for _, note := range tr {
-
-								if note.IsPause {
-									pause += note.Duration
-									continue
-								}
-
-								track.Add(notesToTicks(pause), midi.NoteOn(uint8(i), uint8(note.Value), 64))
-								track.Add(notesToTicks(note.Duration), midi.NoteOff(uint8(i), uint8(note.Value)))
-
-								pause = 0
+							if note.IsPause {
+								pause += note.Duration
+								continue
 							}
 
-							track.Close(0)
+							track.Add(notesToTicks(pause), midi.NoteOn(uint8(key.channel), uint8(note.Value), 64))
+							track.Add(notesToTicks(note.Duration), midi.NoteOff(uint8(key.channel), uint8(note.Value)))
 
-							if err := s.Add(track); err != nil {
-								log.Fatalln(err)
-							}
+							pause = 0
+						}
+
+						track.Close(0)
+
+						if err := s.Add(track); err != nil {
+							log.Fatalln(err)
 						}
 					}
 
