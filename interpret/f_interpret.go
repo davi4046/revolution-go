@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -193,8 +194,6 @@ func Interpret(dir string) error {
 					log.Fatalln("Failed to update project XSD")
 				}
 
-				fmt.Println("hello 1")
-
 				/* Generation */
 
 				genChannels := xmlDoc.FindElements("//Channels/GenChannel")
@@ -241,13 +240,13 @@ func Interpret(dir string) error {
 
 							genItems[ref] = append(genItems[ref],
 								genItem{
-									channel:  i,
-									track:    j,
-									barStart: start,
-									barEnd:   end,
-									offset:   offset,
-									add:      add,
-									sub:      sub,
+									channel:   i,
+									track:     j,
+									barStart:  start,
+									barEnd:    end,
+									barOffset: offset,
+									add:       add,
+									sub:       sub,
 								},
 							)
 						}
@@ -343,15 +342,23 @@ func Interpret(dir string) error {
 				fmt.Printf("changes:\n%v\n", changes)
 
 				for _, id := range maps.Keys(genItems) {
-					for i := range genItems[id] {
-						genItems[id][i].noteStart = barToWholeNote(genItems[id][i].barStart, changes)
-						genItems[id][i].noteEnd = barToWholeNote(genItems[id][i].barEnd, changes)
+					for i, genItem := range genItems[id] {
+						genItem.noteStart = barToWholeNote(genItem.barStart, changes)
+						genItem.noteEnd = barToWholeNote(genItem.barEnd, changes)
+
+						genItem.noteOffset = barToWholeNote(genItem.barStart+math.Abs(genItem.barOffset), changes) - genItem.noteStart
+						if genItem.barOffset < 0 {
+							genItem.noteOffset *= -1
+
+						}
+						genItems[id][i] = genItem
 					}
 				}
 
 				newSettings := make(map[string]*generationSettings)
 
 				for _, id := range maps.Keys(genItems) {
+
 					if id == "none" {
 						continue
 					}
@@ -364,15 +371,15 @@ func Interpret(dir string) error {
 						length := genItem.noteEnd - genItem.noteStart
 
 						if i == 0 {
-							generationStart = genItem.offset
-							generationEnd = genItem.offset + length
+							generationStart = genItem.noteOffset
+							generationEnd = genItem.noteOffset + length
 							continue
 						}
-						if genItem.offset < generationStart {
-							generationStart = genItem.offset
+						if genItem.noteOffset < generationStart {
+							generationStart = genItem.noteOffset
 						}
-						if genItem.offset+length > generationEnd {
-							generationEnd = genItem.offset + length
+						if genItem.noteOffset+length > generationEnd {
+							generationEnd = genItem.noteOffset + length
 						}
 					}
 
@@ -458,13 +465,14 @@ func Interpret(dir string) error {
 							continue
 						}
 
-						notes := getFromTo(generations[genId].generation, genItem.offset, genItem.offset+genItem.noteEnd-genItem.noteStart)
+						notes := getFromTo(generations[genId].generation, genItem.noteOffset,
+							genItem.noteOffset+genItem.noteEnd-genItem.noteStart)
 
 						copiedNotes := make([]Note, len(notes))
 						copy(copiedNotes, notes)
 
 						for i := range copiedNotes {
-							copiedNotes[i].Start -= genItem.offset
+							copiedNotes[i].Start -= genItem.noteOffset
 							copiedNotes[i].Start += genItem.noteStart
 
 							copiedNotes[i].Channel = genItem.channel

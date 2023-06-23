@@ -9,11 +9,14 @@ type genItem struct {
 	noteStart float64
 	// End point of the item on the track in whole notes.
 	noteEnd float64
+	// Offset of the generation in bars.
+	barOffset float64
+	// Offset of the generation in whole notes.
+	noteOffset float64
 
 	channel int
 	track   int
 
-	offset float64 // Offset of the generation in whole notes.
-	add    int
-	sub    int
+	add int
+	sub int
 }
