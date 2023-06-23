@@ -50,7 +50,7 @@ func main() {
 
 			parts := strings.Split(input, " ")
 
-			pitch, err := strconv.Atoi(parts[0])
+			value, err := strconv.Atoi(parts[0])
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -70,12 +70,18 @@ func main() {
 				log.Fatalln(err)
 			}
 
+			isPause, err := strconv.ParseBool(parts[4])
+			if err != nil {
+				log.Fatalln(err)
+			}
+
 			fmt.Println(modifier.Modify(
 				revoutil.Note{
-					Pitch:    pitch,
+					Value:    value,
 					Duration: duration,
 					Channel:  channel,
 					Track:    track,
+					IsPause:  isPause,
 				},
 			))
 		}

@@ -618,6 +618,7 @@ func Interpret(dir string) error {
 									Duration: note.Duration,
 									Channel:  note.Channel,
 									Track:    note.Track,
+									IsPause:  note.IsPause,
 								})
 
 								if _, ok := currTime[myKey{note.Channel, note.Track}]; !ok {
@@ -667,6 +668,7 @@ func Interpret(dir string) error {
 									Duration: note.Duration,
 									Channel:  note.Channel,
 									Track:    note.Track,
+									IsPause:  note.IsPause,
 								})
 								currTime[myKey{note.Channel, note.Track}] += note.Duration
 							}

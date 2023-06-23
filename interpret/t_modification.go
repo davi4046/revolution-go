@@ -66,7 +66,7 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 			for _, s := range parts {
 				parts := strings.Split(s, " ")
 
-				pitch, err := strconv.Atoi(parts[0])
+				value, err := strconv.Atoi(parts[0])
 				if err != nil {
 					log.Fatalln(err)
 				}
@@ -86,11 +86,17 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 					log.Fatalln(err)
 				}
 
+				isPause, err := strconv.ParseBool(parts[4])
+				if err != nil {
+					log.Fatalln(err)
+				}
+
 				output = append(output, revoutil.Note{
-					Value:    pitch,
+					Value:    value,
 					Duration: duration,
 					Channel:  channel,
 					Track:    track,
+					IsPause:  isPause,
 				})
 			}
 		}
