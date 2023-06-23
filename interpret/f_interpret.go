@@ -342,6 +342,13 @@ func Interpret(dir string) error {
 
 				fmt.Printf("changes:\n%v\n", changes)
 
+				for _, id := range maps.Keys(genItems) {
+					for i := range genItems[id] {
+						genItems[id][i].noteStart = barToWholeNote(genItems[id][i].barStart, changes)
+						genItems[id][i].noteEnd = barToWholeNote(genItems[id][i].barEnd, changes)
+					}
+				}
+
 				newSettings := make(map[string]*generationSettings)
 
 				for _, id := range maps.Keys(genItems) {
@@ -354,13 +361,7 @@ func Interpret(dir string) error {
 
 					for i, genItem := range genItems[id] {
 
-						wholeNoteStart := barToWholeNote(genItem.barStart, changes)
-						wholeNoteEnd := barToWholeNote(genItem.barEnd, changes)
-
-						length := wholeNoteEnd - wholeNoteStart
-
-						genItems[id][i].noteStart = wholeNoteStart
-						genItems[id][i].noteEnd = wholeNoteEnd
+						length := genItem.noteEnd - genItem.noteStart
 
 						if i == 0 {
 							generationStart = genItem.offset
@@ -443,10 +444,19 @@ func Interpret(dir string) error {
 				var allNotes []Note
 
 				for genId, genItems := range genItems {
-					if genId == "none" {
-						continue
-					}
+
 					for _, genItem := range genItems {
+
+						if genId == "none" {
+							allNotes = append(allNotes, Note{
+								Start:    genItem.noteStart,
+								Duration: genItem.noteEnd - genItem.noteStart,
+								Channel:  genItem.channel,
+								Track:    genItem.track,
+								IsPause:  true,
+							})
+							continue
+						}
 
 						notes := getFromTo(generations[genId].generation, genItem.offset, genItem.offset+genItem.noteEnd-genItem.noteStart)
 
@@ -696,6 +706,10 @@ func Interpret(dir string) error {
 					clock := smf.MetricTicks(96)
 					s.TimeFormat = clock
 
+					notesToTicks := func(notes float64) uint32 {
+						return uint32(float64(clock.Ticks4th())*notes) * 4
+					}
+
 					func() {
 						changesTrack := smf.Track{}
 
@@ -713,8 +727,7 @@ func Interpret(dir string) error {
 								continue
 							}
 							deltaNotes := change.noteStart - changes[i-1].noteStart
-							deltaTicks := uint32(float64(clock.Ticks4th())*deltaNotes) * 4
-							addChange(deltaTicks, change)
+							addChange(notesToTicks(deltaNotes), change)
 						}
 
 						changesTrack.Close(0)
@@ -865,10 +878,19 @@ func Interpret(dir string) error {
 
 							track.Add(0, midi.ProgramChange(uint8(i), program))
 
+							var pause float64
+
 							for _, note := range tr {
-								deltaticks := uint32(float64(clock.Ticks4th())*note.Duration) * 4
-								track.Add(0, midi.NoteOn(uint8(i), uint8(note.Value), 64))
-								track.Add(deltaticks, midi.NoteOff(uint8(i), uint8(note.Value)))
+
+								if note.IsPause {
+									pause += note.Duration
+									continue
+								}
+
+								track.Add(notesToTicks(pause), midi.NoteOn(uint8(i), uint8(note.Value), 64))
+								track.Add(notesToTicks(note.Duration), midi.NoteOff(uint8(i), uint8(note.Value)))
+
+								pause = 0
 							}
 
 							track.Close(0)

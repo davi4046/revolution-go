@@ -3,10 +3,10 @@ package interpret
 import "golang.org/x/exp/slices"
 
 type Note struct {
-	Value int
-
+	Value    int
 	Start    float64
 	Duration float64
+	IsPause  bool
 
 	Channel int
 	Track   int
