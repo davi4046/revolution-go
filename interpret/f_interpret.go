@@ -302,7 +302,7 @@ func Interpret(dir string) error {
 					change.barStart = bar
 
 					keyEl := changeEl.FindElement("Key")
-					meterEl := changeEl.FindElement("Time")
+					meterEl := changeEl.FindElement("Meter")
 					tempoEl := changeEl.FindElement("Tempo")
 
 					if keyEl == nil {
@@ -724,7 +724,7 @@ func Interpret(dir string) error {
 								change.meter.Numerator,
 								change.meter.Denominator,
 							))
-							changesTrack.Add(deltaTicks, smf.MetaTempo(change.tempo))
+							changesTrack.Add(0, smf.MetaTempo(change.tempo))
 						}
 
 						for i, change := range changes {
