@@ -87,7 +87,7 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 				}
 
 				output = append(output, revoutil.Note{
-					Pitch:    pitch,
+					Value:    pitch,
 					Duration: duration,
 					Channel:  channel,
 					Track:    track,
@@ -96,7 +96,6 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 		}
 
 		if isFinishing {
-			fmt.Println("breaking")
 			break
 		}
 
@@ -105,7 +104,6 @@ func newModification(path string, args []string, input []revoutil.Note, wg *sync
 		} else {
 			io.WriteString(stdin, "finish\n")
 			isFinishing = true
-			fmt.Println("finish sent")
 		}
 	}
 	return modification{

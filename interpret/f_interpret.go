@@ -614,7 +614,7 @@ func Interpret(dir string) error {
 
 							for _, note := range targetNotes {
 								input = append(input, revoutil.Note{
-									Pitch:    note.Value,
+									Value:    note.Value,
 									Duration: note.Duration,
 									Channel:  note.Channel,
 									Track:    note.Track,
@@ -662,7 +662,7 @@ func Interpret(dir string) error {
 
 							for _, note := range result {
 								allNotes = append(allNotes, Note{
-									Value:    note.Pitch,
+									Value:    note.Value,
 									Start:    currTime[myKey{note.Channel, note.Track}],
 									Duration: note.Duration,
 									Channel:  note.Channel,
