@@ -928,9 +928,7 @@ func Interpret(dir string) error {
 				time.Sleep(3 * time.Second)
 
 				if player != nil {
-					if err := player.Process.Kill(); err != nil {
-						log.Fatalln(err)
-					}
+					player.Process.Kill()
 				}
 
 				player = newPlayer
