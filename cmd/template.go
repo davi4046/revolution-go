@@ -4,12 +4,9 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
-
 	"revolution/project"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // templateCmd represents the template command
@@ -24,13 +21,8 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		templateDir := viper.GetString("template_directory")
 
-		if templateDir == "" {
-			log.Fatalln("Template directory is unspecified.")
-		}
-
-		if err := project.CreateTemplate(args[0], templateDir); err != nil {
+		if err := project.CreateTemplate(args[0]); err != nil {
 			return err
 		}
 
