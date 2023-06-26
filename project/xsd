@@ -339,13 +339,27 @@
 	</xs:simpleType>
   <xs:simpleType name="pitchclass">
     <xs:restriction base="xs:string">
-      <xs:enumeration value="A"/>
-      <xs:enumeration value="B"/>
       <xs:enumeration value="C"/>
+      <xs:enumeration value="C#"/>
+      <xs:enumeration value="Db"/>
       <xs:enumeration value="D"/>
+      <xs:enumeration value="D#"/>
+      <xs:enumeration value="Eb"/>
       <xs:enumeration value="E"/>
+      <xs:enumeration value="Fb"/>
+      <xs:enumeration value="E#"/>
       <xs:enumeration value="F"/>
+      <xs:enumeration value="F#"/>
+      <xs:enumeration value="Gb"/>
       <xs:enumeration value="G"/>
+      <xs:enumeration value="G#"/>
+      <xs:enumeration value="Ab"/>
+      <xs:enumeration value="A"/>
+      <xs:enumeration value="A#"/>
+      <xs:enumeration value="Bb"/>
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="Cb"/>
+      <xs:enumeration value="B#"/>
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>
