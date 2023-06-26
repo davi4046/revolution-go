@@ -10,7 +10,7 @@ import (
 	"github.com/davi4046/revoutil"
 )
 
-func extractKey(el *etree.Element) revoutil.LightKey {
+func extractKey(el *etree.Element) revoutil.Key {
 
 	pitch := revoutil.PitchClassMap[el.SelectAttrValue("root", "")]
 
@@ -18,7 +18,7 @@ func extractKey(el *etree.Element) revoutil.LightKey {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	return revoutil.NewLightKey(pitch, scale)
+	return revoutil.NewKey(pitch, scale)
 }
 
 func extractMeter(el *etree.Element) (revoutil.Meter, error) {
